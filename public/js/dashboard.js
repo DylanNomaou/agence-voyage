@@ -441,7 +441,7 @@ function renderPagination(containerId, current, total, onPageChange) {
 
   const btn = (label, page, disabled, active) =>
     `<button class="pg-btn${active ? ' pg-active' : ''}${disabled ? ' pg-disabled' : ''}"
-      ${disabled ? 'disabled' : `onclick="${onPageChange.name}(${page})"`}>${label}</button>`;
+      ${disabled ? 'disabled' : `onclick="(${onPageChange.name})(${page})"`}>${label}</button>`;
 
   el.innerHTML =
     '<div class="pagination">' +
@@ -476,8 +476,12 @@ async function loadVoyages(page = 1) {
   try {
     const r   = await fetch(API + '/voyages?' + params);
     const res = await r.json();
+    if (!r.ok) {
+      c.innerHTML = '<div class="alert-error">' + (res.message || 'Erreur') + '</div>';
+      return;
+    }
     const vs  = res.data;
-    if (!vs.length) {
+    if (!vs || !vs.length) {
       c.innerHTML = '<div class="empty-state">Aucun voyage trouve.</div>';
       renderPagination('voyages-pagination', res.page, res.totalPages, loadVoyages);
       return;
@@ -770,7 +774,6 @@ async function loadReservations(page = 1) {
   try {
     const r = await fetch(`${API}/reservations?page=${page}&limit=10`, { headers: authHeader() });
     const res = await r.json();
-    const d = res.data;
     if (!r.ok) {
       if (r.status === 401) {
         logout();
@@ -781,7 +784,8 @@ async function loadReservations(page = 1) {
       }
       return;
     }
-    if (!d.length) {
+    const d = res.data;
+    if (!d || !d.length) {
       c.innerHTML = '<div class="empty-state">Aucune reservation.</div>';
       renderPagination('reservations-pagination', res.page, res.totalPages, loadReservations);
       return;
@@ -830,7 +834,7 @@ async function cancelReservation(id) {
   try {
     const r = await fetch(API + '/reservations/' + id, { method: 'DELETE', headers: authHeader() });
     if (r.ok) {
-      loadReservations();
+      loadReservations(_resPage);
     } else {
       const d = await r.json();
       alert(d.message || "Erreur lors de l'annulation.");
@@ -888,13 +892,17 @@ async function loadMessages(page = 1) {
       return;
     }
     const res = await r.json();
+    if (!r.ok) {
+      c.innerHTML = '<div class="alert-error" style="margin:16px">' + (res.message || 'Erreur') + '</div>';
+      return;
+    }
     const d = res.data;
-    _messagesCache = d;
-    if (!d.length) {
+    if (!d || !d.length) {
       c.innerHTML = '<div class="empty-state">Aucun message.</div>';
       renderPagination('messages-pagination', res.page, res.totalPages, loadMessages);
       return;
     }
+    _messagesCache = d;
     c.innerHTML =
       '<table><thead><tr><th>Nom</th><th>Email</th><th>Sujet</th><th>Apercu</th><th>Statut</th><th>Date</th><th></th></tr></thead><tbody>' +
       d.map(renderMessageRow).join('') +
@@ -967,12 +975,12 @@ function openMsgDetail(id) {
 
 function closeMsgModal() {
   document.getElementById('msg-modal-overlay').classList.remove('open');
-  loadMessages();
+  loadMessages(_msgPage);
 }
 
 async function markLu(id) {
   await fetch(API + '/contact/' + id + '/lu', { method: 'PUT', headers: authHeader() });
-  loadMessages();
+  loadMessages(_msgPage);
 }
 
 async function deleteMsg(id) {
@@ -984,7 +992,7 @@ async function deleteMsg(id) {
   });
   if (!ok) return;
   await fetch(API + '/contact/' + id, { method: 'DELETE', headers: authHeader() });
-  loadMessages();
+  loadMessages(_msgPage);
 }
 
 // ── Profil ─────────────────────────────────────────────────────────────────────
