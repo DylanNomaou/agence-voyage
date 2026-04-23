@@ -20,10 +20,10 @@ router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
     const { page, limit } = req.query;
     if (page !== undefined) {
       const p     = Math.max(1, parseInt(page) || 1);
-      const lim   = Math.max(1, parseInt(limit) || 10);
+      const lim   = Math.min(100, Math.max(1, parseInt(limit) || 10));
       const total = await Message.countDocuments();
       const data  = await Message.find().sort({ createdAt: -1 }).skip((p - 1) * lim).limit(lim);
-      return res.json({ data, total, page: p, totalPages: Math.ceil(total / lim) });
+      return res.json({ data, total, page: p, totalPages: Math.max(1, Math.ceil(total / lim)) });
     }
     const messages = await Message.find().sort({ createdAt: -1 });
     res.json(messages);

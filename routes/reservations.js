@@ -21,11 +21,11 @@ router.get('/', authMiddleware, async (req, res) => {
 
     if (page !== undefined) {
       const p     = Math.max(1, parseInt(page) || 1);
-      const lim   = Math.max(1, parseInt(limit) || 10);
-      const base  = req.user.role === 'admin' ? Reservation.find() : Reservation.find({ client: req.user.id });
-      const total = await base.countDocuments();
+      const lim   = Math.min(100, Math.max(1, parseInt(limit) || 10));
+      const countFilter = req.user.role === 'admin' ? {} : { client: req.user.id };
+      const total = await Reservation.countDocuments(countFilter);
       const data  = await query.skip((p - 1) * lim).limit(lim);
-      return res.json({ data, total, page: p, totalPages: Math.ceil(total / lim) });
+      return res.json({ data, total, page: p, totalPages: Math.max(1, Math.ceil(total / lim)) });
     }
     const reservations = await query;
     res.json(reservations);

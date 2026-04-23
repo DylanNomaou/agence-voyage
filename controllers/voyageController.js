@@ -19,10 +19,10 @@ const getVoyages = async (req, res) => {
 
     if (page !== undefined) {
       const p     = Math.max(1, parseInt(page) || 1);
-      const lim   = Math.max(1, parseInt(limit) || 10);
+      const lim   = Math.min(100, Math.max(1, parseInt(limit) || 10));
       const total = await Voyage.countDocuments(filtre);
       const data  = await Voyage.find(filtre).sort(sortOption).skip((p - 1) * lim).limit(lim);
-      return res.json({ data, total, page: p, totalPages: Math.ceil(total / lim) });
+      return res.json({ data, total, page: p, totalPages: Math.max(1, Math.ceil(total / lim)) });
     }
 
     const voyages = await Voyage.find(filtre).sort(sortOption);
