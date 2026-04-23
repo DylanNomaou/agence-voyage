@@ -7,12 +7,27 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 // GET /api/reservations — mes réservations (client) ou toutes (admin)
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    let reservations;
+    const { page, limit } = req.query;
+    let query;
     if (req.user.role === 'admin') {
-      reservations = await Reservation.find().populate('client', 'nom email').populate('voyage', 'titre destination');
+      query = Reservation.find()
+        .populate('client', 'nom email telephone')
+        .populate('voyage', 'titre destination');
     } else {
-      reservations = await Reservation.find({ client: req.user.id }).populate('voyage', 'titre destination prix dateDepart');
+      query = Reservation.find({ client: req.user.id })
+        .populate('voyage', 'titre destination prix dateDepart');
     }
+    query = query.sort({ createdAt: -1 });
+
+    if (page !== undefined) {
+      const p     = Math.max(1, parseInt(page) || 1);
+      const lim   = Math.max(1, parseInt(limit) || 10);
+      const base  = req.user.role === 'admin' ? Reservation.find() : Reservation.find({ client: req.user.id });
+      const total = await base.countDocuments();
+      const data  = await query.skip((p - 1) * lim).limit(lim);
+      return res.json({ data, total, page: p, totalPages: Math.ceil(total / lim) });
+    }
+    const reservations = await query;
     res.json(reservations);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });

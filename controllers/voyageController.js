@@ -3,21 +3,28 @@ const Voyage = require('../models/Voyage');
 // GET /api/voyages — liste avec filtres optionnels
 const getVoyages = async (req, res) => {
   try {
-    const { categorie, prixMax, destination, vedette } = req.query;
+    const { categorie, prixMax, destination, vedette, page, limit } = req.query;
     const filtre = {};
 
-    if (categorie) filtre.categorie = categorie;
-    if (prixMax) filtre.prix = { $lte: Number(prixMax) };
+    if (categorie)  filtre.categorie   = categorie;
+    if (prixMax)    filtre.prix        = { $lte: Number(prixMax) };
     if (destination) filtre.destination = new RegExp(destination, 'i');
     if (vedette === 'true') filtre.vedette = true;
 
     const sortMap = {
-      prix_asc: { prix: 1 },
-      prix_desc: { prix: -1 },
-      duree_asc: { duree: 1 },
-      duree_desc: { duree: -1 },
+      prix_asc:  { prix: 1 },  prix_desc: { prix: -1 },
+      duree_asc: { duree: 1 }, duree_desc: { duree: -1 },
     };
     const sortOption = sortMap[req.query.sort] || { createdAt: -1 };
+
+    if (page !== undefined) {
+      const p     = Math.max(1, parseInt(page) || 1);
+      const lim   = Math.max(1, parseInt(limit) || 10);
+      const total = await Voyage.countDocuments(filtre);
+      const data  = await Voyage.find(filtre).sort(sortOption).skip((p - 1) * lim).limit(lim);
+      return res.json({ data, total, page: p, totalPages: Math.ceil(total / lim) });
+    }
+
     const voyages = await Voyage.find(filtre).sort(sortOption);
     res.json(voyages);
   } catch (err) {
