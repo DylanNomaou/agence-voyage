@@ -1,4 +1,15 @@
 const API = 'http://localhost:5000/api';
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 let token       = localStorage.getItem('token');
 let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
@@ -1173,10 +1184,7 @@ async function saveProfile(ev) {
 }
 
 // ── Admin Réservations ─────────────────────────────────────────────────────────
-let _adminResPage = 1;
-
 async function loadAdminReservations(page = 1) {
-  _adminResPage = page;
   const c = document.getElementById('admin-reservations-container');
   if (!token || currentUser?.role !== 'admin') {
     c.innerHTML = '<div class="empty-state">Accès administrateur requis.</div>';
@@ -1209,40 +1217,49 @@ async function loadAdminReservations(page = 1) {
 
 function renderAdminResRow(r) {
   const statusOpts = ['en_attente', 'confirmee', 'annulee'].map(s =>
-    `<option value="${s}" ${r.statut === s ? 'selected' : ''}>${s.replace('_', ' ')}</option>`
+    `<option value="${s}" ${r.statut === s ? 'selected' : ''}>${s.replace(/_/g, ' ')}</option>`
   ).join('');
-  const clientData = JSON.stringify({ nom: r.client?.nom, email: r.client?.email, tel: r.client?.telephone, voyage: r.voyage?.titre });
+  const clientData = JSON.stringify({ nom: r.client?.nom || '', email: r.client?.email || '', tel: r.client?.telephone || '', voyage: r.voyage?.titre || '' });
   return `
     <tr>
-      <td><span class="res-client-name">${r.client?.nom || '—'}</span></td>
-      <td><span class="res-client-email">${r.client?.email || '—'}</span></td>
-      <td><span class="res-client-tel">${r.client?.telephone || '—'}</span></td>
-      <td class="td-primary">${r.voyage?.titre || '—'}</td>
-      <td style="color:#64748b">${r.voyage?.destination || '—'}</td>
+      <td><span class="res-client-name">${esc(r.client?.nom) || '—'}</span></td>
+      <td><span class="res-client-email">${esc(r.client?.email) || '—'}</span></td>
+      <td><span class="res-client-tel">${esc(r.client?.telephone) || '—'}</span></td>
+      <td class="td-primary">${esc(r.voyage?.titre) || '—'}</td>
+      <td style="color:#64748b">${esc(r.voyage?.destination) || '—'}</td>
       <td>${r.nombrePersonnes}</td>
       <td style="color:#38bdf8;font-weight:600">${formatPrice(r.prixTotal)}</td>
       <td>
-        <select class="statut-select" onchange="changeResStatut('${r._id}', this.value)">
+        <select class="statut-select" onchange="changeResStatut('${r._id}', this.value, this)">
           ${statusOpts}
         </select>
       </td>
       <td class="td-date">${new Date(r.createdAt).toLocaleDateString('fr-FR')}</td>
       <td>
-        <button class="btn-contact-client" onclick='openContactModal(${JSON.stringify(clientData)})'>
+        <button class="btn-contact-client" data-client="${esc(clientData)}">
           Contacter
         </button>
       </td>
     </tr>`;
 }
 
-async function changeResStatut(id, statut) {
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.btn-contact-client');
+  if (btn && btn.dataset.client) openContactModal(btn.dataset.client);
+});
+
+async function changeResStatut(id, statut, selectEl) {
   try {
     const r = await fetch(`${API}/reservations/${id}/statut`, {
       method: 'PUT',
       headers: { ...jsonHeader(), ...authHeader() },
       body: JSON.stringify({ statut }),
     });
-    if (!r.ok) alert('Erreur lors du changement de statut.');
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      if (selectEl) selectEl.value = selectEl.querySelector('[selected]')?.value || statut;
+      alert(d.message || 'Erreur lors du changement de statut.');
+    }
   } catch (err) {
     alert('Erreur réseau : ' + err.message);
   }
@@ -1252,9 +1269,9 @@ function openContactModal(dataJson) {
   const d = JSON.parse(dataJson);
   document.getElementById('contact-modal-name').textContent = 'Contacter ' + (d.nom || 'le client');
   document.getElementById('contact-modal-body').innerHTML = `
-    <div style="margin-bottom:6px"><strong style="color:#e2e8f0">Email :</strong> ${d.email || '—'}</div>
-    <div style="margin-bottom:6px"><strong style="color:#e2e8f0">Téléphone :</strong> ${d.tel || '—'}</div>
-    <div><strong style="color:#e2e8f0">Voyage :</strong> ${d.voyage || '—'}</div>`;
+    <div style="margin-bottom:6px"><strong style="color:#e2e8f0">Email :</strong> ${esc(d.email) || '—'}</div>
+    <div style="margin-bottom:6px"><strong style="color:#e2e8f0">Téléphone :</strong> ${esc(d.tel) || '—'}</div>
+    <div><strong style="color:#e2e8f0">Voyage :</strong> ${esc(d.voyage) || '—'}</div>`;
   const subject = encodeURIComponent('Votre réservation — ' + (d.voyage || ''));
   document.getElementById('contact-modal-mailto').href = `mailto:${d.email || ''}?subject=${subject}`;
   document.getElementById('contact-client-modal').style.display = 'flex';
@@ -1265,7 +1282,7 @@ function closeContactModal() {
 }
 
 // ── Datepicker + raccourcis clavier ────────────────────────────────────────────
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMsgModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMsgModal(); closeContactModal(); } });
 
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof flatpickr !== 'undefined') {
