@@ -96,7 +96,6 @@ window.onload = async () => {
   checkApiStatus();
   updateAuthUI();
   await fetchRates();
-  loadVoyages();
 
   // Navigation par hash URL (ex: /dashboard.html#login ou #voyages)
   // Doit s'exécuter après updateAuthUI pour ne pas être écrasé
@@ -132,6 +131,10 @@ function updateAuthUI() {
   document.getElementById('nav-admin-voyages').style.display  = isAdmin    ? 'block'    : 'none';
   document.getElementById('nav-client-section').style.display = isLoggedIn ? 'block'    : 'none';
   document.getElementById('nav-admin-messages').style.display = isAdmin    ? 'block'    : 'none';
+  const navAlbums = document.getElementById('nav-admin-albums');
+  if (navAlbums) navAlbums.style.display = isAdmin ? 'block' : 'none';
+  const navAdminRes = document.getElementById('nav-admin-reservations');
+  if (navAdminRes) navAdminRes.style.display = isAdmin ? 'block' : 'none';
 
   if (isLoggedIn) {
     const initial = currentUser.nom.charAt(0).toUpperCase();
@@ -147,7 +150,7 @@ function updateAuthUI() {
   if (activeTab) {
     const id        = activeTab.id;
     const gated     = ['tab-reservations', 'tab-reserver', 'tab-contact', 'tab-messages', 'tab-voyage-create'];
-    const adminOnly = ['tab-voyage-create', 'tab-messages'];
+    const adminOnly = ['tab-voyage-create', 'tab-messages', 'tab-admin-reservations', 'tab-albums'];
     if (!isLoggedIn && gated.includes(id)) {
       showTab('voyages', document.querySelector('.nav-btn'));
     } else if (isLoggedIn && !isAdmin && adminOnly.includes(id)) {
@@ -165,6 +168,8 @@ function showTab(name, btn) {
   if (name === 'reservations') loadReservations();
   if (name === 'messages')     loadMessages();
   if (name === 'profile')      loadProfileTab();
+  if (name === 'voyages') loadVoyages();
+  if (name === 'albums')  loadAlbums();
 }
 
 function logout() {
