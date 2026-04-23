@@ -1281,6 +1281,157 @@ function closeContactModal() {
   document.getElementById('contact-client-modal').style.display = 'none';
 }
 
+// ── Albums (admin) ─────────────────────────────────────────────────────────────
+function showCreateAlbumForm()  { document.getElementById('album-create-form').style.display = 'block'; }
+function hideCreateAlbumForm()  { document.getElementById('album-create-form').style.display = 'none'; }
+
+async function createAlbum() {
+  const titre = document.getElementById('album-titre').value.trim();
+  const desc  = document.getElementById('album-desc').value.trim();
+  const el    = document.getElementById('album-create-response');
+  if (!titre) { el.innerHTML = '<div class="alert-error" style="margin-top:8px">Le titre est requis.</div>'; return; }
+  try {
+    const r = await fetch(API + '/albums', {
+      method: 'POST',
+      headers: { ...jsonHeader(), ...authHeader() },
+      body: JSON.stringify({ titre, description: desc }),
+    });
+    const d = await r.json();
+    if (r.ok) {
+      hideCreateAlbumForm();
+      document.getElementById('album-titre').value = '';
+      document.getElementById('album-desc').value  = '';
+      el.innerHTML = '';
+      loadAlbums();
+    } else {
+      el.innerHTML = '<div class="alert-error" style="margin-top:8px">' + esc(d.message || 'Erreur') + '</div>';
+    }
+  } catch (err) {
+    el.innerHTML = '<div class="alert-error" style="margin-top:8px">' + esc(err.message) + '</div>';
+  }
+}
+
+async function loadAlbums(page = 1) {
+  const c = document.getElementById('albums-container');
+  if (!token || currentUser?.role !== 'admin') {
+    c.innerHTML = '<div class="empty-state">Accès administrateur requis.</div>';
+    return;
+  }
+  c.innerHTML = '<div class="empty-state">Chargement...</div>';
+  try {
+    const r = await fetch(`${API}/albums?page=${page}&limit=10`, { headers: authHeader() });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      c.innerHTML = '<div class="alert-error" style="margin:16px">' + esc(d.message || 'Erreur') + '</div>';
+      return;
+    }
+    const res = await r.json();
+    if (!res.data || !res.data.length) {
+      c.innerHTML = '<div class="empty-state">Aucun album. Créez-en un ci-dessus.</div>';
+      renderPagination('albums-pagination', res.page, res.totalPages, loadAlbums);
+      return;
+    }
+    c.innerHTML = '<div class="albums-list">' + res.data.map(renderAlbumCard).join('') + '</div>';
+    renderPagination('albums-pagination', res.page, res.totalPages, loadAlbums);
+  } catch (err) {
+    c.innerHTML = '<div class="alert-error" style="margin:16px">' + esc(err.message) + '</div>';
+  }
+}
+
+function renderAlbumCard(album) {
+  const photos = album.photos.map(p => `
+    <div class="album-photo-wrap" data-album-id="${esc(album._id)}" data-photo-id="${esc(p._id)}">
+      <img src="${esc(p.url)}" alt="${esc(p.legende)}" onerror="this.style.display='none'" />
+      <button class="album-photo-delete" title="Supprimer">✕</button>
+    </div>`).join('');
+
+  return `
+    <div class="album-card" id="album-${esc(album._id)}">
+      <div class="album-card-header">
+        <div>
+          <div class="album-title">${esc(album.titre)}</div>
+          ${album.description ? '<div class="album-desc">' + esc(album.description) + '</div>' : ''}
+        </div>
+        <button class="btn-delete-album" data-album-id="${esc(album._id)}" data-album-titre="${esc(album.titre)}">Supprimer</button>
+      </div>
+      <div class="album-photos-grid">${photos}</div>
+      <div>
+        <label class="album-upload-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Ajouter une photo
+          <input type="file" accept="image/*" style="display:none" data-album-id="${esc(album._id)}" class="album-photo-input" />
+        </label>
+      </div>
+    </div>`;
+}
+
+async function uploadAlbumPhoto(albumId, file) {
+  const fd = new FormData();
+  fd.append('photo', file);
+  try {
+    const r = await fetch(`${API}/albums/${albumId}/photos`, {
+      method: 'POST',
+      headers: authHeader(),
+      body: fd,
+    });
+    if (r.ok) loadAlbums();
+    else { const d = await r.json(); alert(esc(d.message) || 'Erreur upload'); }
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message);
+  }
+}
+
+async function deleteAlbumPhoto(albumId, photoId) {
+  try {
+    const r = await fetch(`${API}/albums/${albumId}/photos/${photoId}`, {
+      method: 'DELETE', headers: authHeader(),
+    });
+    if (r.ok) loadAlbums();
+    else { const d = await r.json(); alert(esc(d.message) || 'Erreur suppression'); }
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message);
+  }
+}
+
+async function deleteAlbum(id, titre) {
+  const ok = await showConfirm({
+    title: 'Supprimer l\'album',
+    msg: `Supprimer "${titre}" et toutes ses photos ? Action irréversible.`,
+    type: 'danger', okLabel: 'Supprimer',
+  });
+  if (!ok) return;
+  try {
+    const r = await fetch(`${API}/albums/${id}`, { method: 'DELETE', headers: authHeader() });
+    if (r.ok) loadAlbums();
+    else { const d = await r.json(); alert(esc(d.message) || 'Erreur'); }
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message);
+  }
+}
+
+// Delegated event listeners for album actions
+document.addEventListener('click', e => {
+  const photoDelete = e.target.closest('.album-photo-delete');
+  if (photoDelete) {
+    const wrap = photoDelete.closest('.album-photo-wrap');
+    if (wrap) deleteAlbumPhoto(wrap.dataset.albumId, wrap.dataset.photoId);
+    return;
+  }
+  const albumDelete = e.target.closest('.btn-delete-album');
+  if (albumDelete) {
+    deleteAlbum(albumDelete.dataset.albumId, albumDelete.dataset.albumTitre);
+    return;
+  }
+});
+
+document.addEventListener('change', e => {
+  const input = e.target.closest('.album-photo-input');
+  if (input && input.files[0]) {
+    uploadAlbumPhoto(input.dataset.albumId, input.files[0]);
+    input.value = '';
+  }
+});
+
 // ── Datepicker + raccourcis clavier ────────────────────────────────────────────
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMsgModal(); closeContactModal(); } });
 
