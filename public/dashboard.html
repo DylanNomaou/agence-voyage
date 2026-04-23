@@ -229,7 +229,7 @@
           <button onclick="loadVoyages()" class="btn-cyan">Actualiser</button>
         </div>
         <div class="filters-bar">
-          <select id="filter-categorie" class="filter-input" onchange="loadVoyages()">
+          <select id="filter-categorie" class="filter-input" onchange="loadVoyages(1)">
             <option value="">Toutes categories</option>
             <option value="plage">Plage</option>
             <option value="montagne">Montagne</option>
@@ -238,16 +238,17 @@
             <option value="culture">Culture</option>
             <option value="autre">Autre</option>
           </select>
-          <input type="number" id="filter-prix" class="filter-input filter-input-prix" placeholder="Prix max (CAD)" oninput="loadVoyages()" />
-          <input type="text" id="filter-dest" class="filter-input filter-input-dest" placeholder="Destination..." oninput="loadVoyages()" />
+          <input type="number" id="filter-prix" class="filter-input filter-input-prix" placeholder="Prix max (CAD)" oninput="loadVoyages(1)" />
+          <input type="text" id="filter-dest" class="filter-input filter-input-dest" placeholder="Destination..." oninput="loadVoyages(1)" />
           <label class="filter-checkbox-label">
-            <input type="checkbox" id="filter-vedette" class="filter-checkbox" onchange="loadVoyages()" />
+            <input type="checkbox" id="filter-vedette" class="filter-checkbox" onchange="loadVoyages(1)" />
             Vedettes uniquement
           </label>
         </div>
         <div id="voyages-container">
           <div class="empty-state">Chargement des voyages...</div>
         </div>
+        <div id="voyages-pagination"></div>
       </div>
 
       <!-- VOYAGE DETAIL -->
@@ -452,6 +453,7 @@
             <div class="empty-state">Connectez-vous pour voir les reservations.</div>
           </div>
         </div>
+        <div id="reservations-pagination"></div>
       </div>
 
       <!-- NOUVELLE RESERVATION -->
@@ -627,6 +629,7 @@
             <div class="empty-state">Connectez-vous en tant qu'administrateur pour lire les messages.</div>
           </div>
         </div>
+        <div id="messages-pagination"></div>
       </div>
 
     </main>

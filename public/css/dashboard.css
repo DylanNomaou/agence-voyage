@@ -1955,3 +1955,39 @@ input.valid {
 }
 
 .btn-globe-cta:hover { opacity: 0.85; transform: translateY(-2px); }
+
+/* ── Pagination ────────────────────────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.pg-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  background: #0a1e33;
+  border: 1px solid #1a3a5c;
+  color: #94a3b8;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.pg-btn:hover:not(.pg-disabled):not(.pg-active) {
+  background: #0d2a45;
+  border-color: rgba(56,189,248,0.4);
+  color: #e2e8f0;
+}
+.pg-active {
+  background: rgba(56,189,248,0.15);
+  border-color: rgba(56,189,248,0.5);
+  color: #38bdf8;
+  font-weight: 600;
+}
+.pg-disabled { opacity: 0.3; cursor: not-allowed; }
+.pg-ellipsis { color: #64748b; padding: 0 4px; font-size: 0.82rem; }

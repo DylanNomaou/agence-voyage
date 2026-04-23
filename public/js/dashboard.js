@@ -423,8 +423,42 @@ async function submitLogin(ev) {
   btn.disabled    = false;
 }
 
+// ── Pagination ─────────────────────────────────────────────────────────────────
+function renderPagination(containerId, current, total, onPageChange) {
+  const el = document.getElementById(containerId);
+  if (!el || total <= 1) { if (el) el.innerHTML = ''; return; }
+
+  const pages = [];
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (current > 3) pages.push('…');
+    for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) pages.push(i);
+    if (current < total - 2) pages.push('…');
+    pages.push(total);
+  }
+
+  const btn = (label, page, disabled, active) =>
+    `<button class="pg-btn${active ? ' pg-active' : ''}${disabled ? ' pg-disabled' : ''}"
+      ${disabled ? 'disabled' : `onclick="${onPageChange.name}(${page})"`}>${label}</button>`;
+
+  el.innerHTML =
+    '<div class="pagination">' +
+    btn('←', current - 1, current === 1, false) +
+    pages.map(p => p === '…'
+      ? '<span class="pg-ellipsis">…</span>'
+      : btn(p, p, false, p === current)
+    ).join('') +
+    btn('→', current + 1, current === total, false) +
+    '</div>';
+}
+
 // ── Voyages ────────────────────────────────────────────────────────────────────
-async function loadVoyages() {
+let _voyagesPage = 1;
+
+async function loadVoyages(page = 1) {
+  _voyagesPage = page;
   const params = new URLSearchParams();
   const cat  = document.getElementById('filter-categorie')?.value;
   const prix = document.getElementById('filter-prix')?.value;
@@ -434,21 +468,26 @@ async function loadVoyages() {
   if (prix) params.set('prixMax',     prix);
   if (dest) params.set('destination', dest);
   if (ved)  params.set('vedette',     'true');
+  params.set('page', page);
+  params.set('limit', 10);
 
   const c = document.getElementById('voyages-container');
   c.innerHTML = '<div class="empty-state">Chargement...</div>';
   try {
-    const r  = await fetch(API + '/voyages?' + params);
-    const vs = await r.json();
+    const r   = await fetch(API + '/voyages?' + params);
+    const res = await r.json();
+    const vs  = res.data;
     if (!vs.length) {
       c.innerHTML = '<div class="empty-state">Aucun voyage trouve.</div>';
+      renderPagination('voyages-pagination', res.page, res.totalPages, loadVoyages);
       return;
     }
     c.innerHTML =
-      '<p class="results-count">' + vs.length + ' voyage(s) trouve(s)</p>' +
+      '<p class="results-count">' + res.total + ' voyage(s) trouve(s)</p>' +
       '<div class="voyages-grid">' +
       vs.map(renderVoyageCard).join('') +
       '</div>';
+    renderPagination('voyages-pagination', res.page, res.totalPages, loadVoyages);
   } catch (err) {
     c.innerHTML = '<div class="alert-error">Erreur : ' + err.message + '</div>';
   }
@@ -658,6 +697,8 @@ function clearFileIfUrl() {
 }
 
 // ── Réservations ───────────────────────────────────────────────────────────────
+let _resPage = 1;
+
 async function loadVoyagesForSelect(sid) {
   const r   = await fetch(API + '/voyages');
   const vs  = await r.json();
@@ -719,27 +760,30 @@ async function makeReservation(ev) {
   }
 }
 
-async function loadReservations() {
+async function loadReservations(page = 1) {
+  _resPage = page;
   const c = document.getElementById('reservations-container');
   if (!token) {
     c.innerHTML = '<div class="empty-state">Connectez-vous pour voir les reservations.</div>';
     return;
   }
   try {
-    const r = await fetch(API + '/reservations', { headers: authHeader() });
-    const d = await r.json();
+    const r = await fetch(`${API}/reservations?page=${page}&limit=10`, { headers: authHeader() });
+    const res = await r.json();
+    const d = res.data;
     if (!r.ok) {
       if (r.status === 401) {
         logout();
         showTab('login', null);
         c.innerHTML = '<div class="alert-error" style="margin:16px">Session expiree, veuillez vous reconnecter.</div>';
       } else {
-        c.innerHTML = '<div class="alert-error" style="margin:16px">' + d.message + '</div>';
+        c.innerHTML = '<div class="alert-error" style="margin:16px">' + res.message + '</div>';
       }
       return;
     }
     if (!d.length) {
       c.innerHTML = '<div class="empty-state">Aucune reservation.</div>';
+      renderPagination('reservations-pagination', res.page, res.totalPages, loadReservations);
       return;
     }
     const isAdmin = currentUser?.role === 'admin';
@@ -747,8 +791,9 @@ async function loadReservations() {
       '<table><thead><tr><th>Voyage</th>' +
       (isAdmin ? '<th>Client</th>' : '') +
       '<th>Personnes</th><th>Total</th><th>Statut</th><th>Date</th><th></th></tr></thead><tbody>' +
-      d.map(res => renderReservationRow(res, isAdmin)).join('') +
+      d.map(row => renderReservationRow(row, isAdmin)).join('') +
       '</tbody></table>';
+    renderPagination('reservations-pagination', res.page, res.totalPages, loadReservations);
   } catch (err) {
     c.innerHTML = '<div class="alert-error" style="margin:16px">' + err.message + '</div>';
   }
@@ -825,31 +870,36 @@ async function sendContact(ev) {
 
 // ── Messages (admin) ───────────────────────────────────────────────────────────
 let _messagesCache = [];
+let _msgPage = 1;
 
-async function loadMessages() {
+async function loadMessages(page = 1) {
+  _msgPage = page;
   const c = document.getElementById('messages-container');
   if (!token || currentUser?.role !== 'admin') {
     c.innerHTML = "<div class=\"empty-state\">Connectez-vous en tant qu'administrateur.</div>";
     return;
   }
   try {
-    const r = await fetch(API + '/contact', { headers: authHeader() });
+    const r = await fetch(`${API}/contact?page=${page}&limit=10`, { headers: authHeader() });
     if (r.status === 401) {
       logout();
       showTab('login', null);
       c.innerHTML = '<div class="alert-error" style="margin:16px">Session expiree, veuillez vous reconnecter.</div>';
       return;
     }
-    const d = await r.json();
+    const res = await r.json();
+    const d = res.data;
     _messagesCache = d;
     if (!d.length) {
       c.innerHTML = '<div class="empty-state">Aucun message.</div>';
+      renderPagination('messages-pagination', res.page, res.totalPages, loadMessages);
       return;
     }
     c.innerHTML =
       '<table><thead><tr><th>Nom</th><th>Email</th><th>Sujet</th><th>Apercu</th><th>Statut</th><th>Date</th><th></th></tr></thead><tbody>' +
       d.map(renderMessageRow).join('') +
       '</tbody></table>';
+    renderPagination('messages-pagination', res.page, res.totalPages, loadMessages);
   } catch (err) {
     c.innerHTML = '<div class="alert-error" style="margin:16px">' + err.message + '</div>';
   }
