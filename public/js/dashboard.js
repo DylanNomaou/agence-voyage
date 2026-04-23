@@ -1426,7 +1426,7 @@ async function deleteAlbum(id, titre) {
   try {
     const r = await fetch(`${API}/albums/${id}`, { method: 'DELETE', headers: authHeader() });
     if (r.ok) loadAlbums(_albumsPage);
-    else { const d = await r.json(); alert(esc(d.message) || 'Erreur'); }
+    else { const d = await r.json().catch(() => ({})); alert(esc(d.message) || 'Erreur'); }
   } catch (err) {
     alert('Erreur réseau : ' + err.message);
   }
