@@ -15,6 +15,7 @@ app.use('/api/voyages', require('./routes/voyages'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/reservations', require('./routes/reservations'));
 app.use('/api/contact', require('./routes/contact'));
+app.use('/api/albums', require('./routes/albums'));
 
 // Proxy taux de change (évite le CORS de frankfurter.app)
 app.get('/api/rates', async (req, res) => {
