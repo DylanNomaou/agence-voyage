@@ -1245,7 +1245,20 @@ function renderAdminResRow(r) {
 
 document.addEventListener('click', e => {
   const btn = e.target.closest('.btn-contact-client');
-  if (btn && btn.dataset.client) openContactModal(btn.dataset.client);
+  if (btn && btn.dataset.client) { openContactModal(btn.dataset.client); return; }
+
+  const photoDelete = e.target.closest('.album-photo-delete');
+  if (photoDelete) {
+    const wrap = photoDelete.closest('.album-photo-wrap');
+    if (wrap) deleteAlbumPhoto(wrap.dataset.albumId, wrap.dataset.photoId);
+    return;
+  }
+
+  const albumDelete = e.target.closest('.btn-delete-album');
+  if (albumDelete) {
+    deleteAlbum(albumDelete.dataset.albumId, albumDelete.dataset.albumTitre);
+    return;
+  }
 });
 
 async function changeResStatut(id, statut, selectEl) {
@@ -1296,22 +1309,26 @@ async function createAlbum() {
       headers: { ...jsonHeader(), ...authHeader() },
       body: JSON.stringify({ titre, description: desc }),
     });
-    const d = await r.json();
-    if (r.ok) {
-      hideCreateAlbumForm();
-      document.getElementById('album-titre').value = '';
-      document.getElementById('album-desc').value  = '';
-      el.innerHTML = '';
-      loadAlbums();
-    } else {
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
       el.innerHTML = '<div class="alert-error" style="margin-top:8px">' + esc(d.message || 'Erreur') + '</div>';
+      return;
     }
+    // success branch: no need to parse body (server returns the album, we don't use it)
+    hideCreateAlbumForm();
+    document.getElementById('album-titre').value = '';
+    document.getElementById('album-desc').value  = '';
+    el.innerHTML = '';
+    loadAlbums();
   } catch (err) {
     el.innerHTML = '<div class="alert-error" style="margin-top:8px">' + esc(err.message) + '</div>';
   }
 }
 
+let _albumsPage = 1;
+
 async function loadAlbums(page = 1) {
+  _albumsPage = page;
   const c = document.getElementById('albums-container');
   if (!token || currentUser?.role !== 'admin') {
     c.innerHTML = '<div class="empty-state">Accès administrateur requis.</div>';
@@ -1339,7 +1356,7 @@ async function loadAlbums(page = 1) {
 }
 
 function renderAlbumCard(album) {
-  const photos = album.photos.map(p => `
+  const photos = (album.photos ?? []).map(p => `
     <div class="album-photo-wrap" data-album-id="${esc(album._id)}" data-photo-id="${esc(p._id)}">
       <img src="${esc(p.url)}" alt="${esc(p.legende)}" onerror="this.style.display='none'" />
       <button class="album-photo-delete" title="Supprimer">✕</button>
@@ -1374,20 +1391,26 @@ async function uploadAlbumPhoto(albumId, file) {
       headers: authHeader(),
       body: fd,
     });
-    if (r.ok) loadAlbums();
-    else { const d = await r.json(); alert(esc(d.message) || 'Erreur upload'); }
+    if (r.ok) loadAlbums(_albumsPage);
+    else { const d = await r.json().catch(() => ({})); alert(esc(d.message) || 'Erreur upload'); }
   } catch (err) {
     alert('Erreur réseau : ' + err.message);
   }
 }
 
 async function deleteAlbumPhoto(albumId, photoId) {
+  const ok = await showConfirm({
+    title: 'Supprimer la photo',
+    msg: 'Supprimer cette photo ? Action irréversible.',
+    type: 'danger', okLabel: 'Supprimer',
+  });
+  if (!ok) return;
   try {
     const r = await fetch(`${API}/albums/${albumId}/photos/${photoId}`, {
       method: 'DELETE', headers: authHeader(),
     });
-    if (r.ok) loadAlbums();
-    else { const d = await r.json(); alert(esc(d.message) || 'Erreur suppression'); }
+    if (r.ok) loadAlbums(_albumsPage);
+    else { const d = await r.json().catch(() => ({})); alert(esc(d.message) || 'Erreur suppression'); }
   } catch (err) {
     alert('Erreur réseau : ' + err.message);
   }
@@ -1402,32 +1425,23 @@ async function deleteAlbum(id, titre) {
   if (!ok) return;
   try {
     const r = await fetch(`${API}/albums/${id}`, { method: 'DELETE', headers: authHeader() });
-    if (r.ok) loadAlbums();
+    if (r.ok) loadAlbums(_albumsPage);
     else { const d = await r.json(); alert(esc(d.message) || 'Erreur'); }
   } catch (err) {
     alert('Erreur réseau : ' + err.message);
   }
 }
 
-// Delegated event listeners for album actions
-document.addEventListener('click', e => {
-  const photoDelete = e.target.closest('.album-photo-delete');
-  if (photoDelete) {
-    const wrap = photoDelete.closest('.album-photo-wrap');
-    if (wrap) deleteAlbumPhoto(wrap.dataset.albumId, wrap.dataset.photoId);
-    return;
-  }
-  const albumDelete = e.target.closest('.btn-delete-album');
-  if (albumDelete) {
-    deleteAlbum(albumDelete.dataset.albumId, albumDelete.dataset.albumTitre);
-    return;
-  }
-});
-
 document.addEventListener('change', e => {
   const input = e.target.closest('.album-photo-input');
   if (input && input.files[0]) {
-    uploadAlbumPhoto(input.dataset.albumId, input.files[0]);
+    const file = input.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Le fichier ne doit pas dépasser 5 Mo.');
+      input.value = '';
+      return;
+    }
+    uploadAlbumPhoto(input.dataset.albumId, file);
     input.value = '';
   }
 });
