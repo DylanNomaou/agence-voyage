@@ -169,7 +169,7 @@ function showTab(name, btn) {
   if (name === 'messages')     loadMessages();
   if (name === 'profile')      loadProfileTab();
   if (name === 'voyages') loadVoyages();
-  if (name === 'albums')  loadAlbums();
+  if (name === 'albums' && typeof loadAlbums === 'function') loadAlbums();
 }
 
 function logout() {
@@ -571,7 +571,6 @@ async function deleteVoyage(id, titre) {
     const r = await fetch(API + '/voyages/' + id, { method: 'DELETE', headers: authHeader() });
     if (r.ok) {
       showTab('voyages', document.querySelector('.nav-btn'));
-      loadVoyages();
     } else {
       const d = await r.json();
       alert(d.message || 'Erreur lors de la suppression.');
@@ -613,7 +612,6 @@ async function createVoyage(ev) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           <span class="alert-success-text">Voyage "${d.titre}" cree avec succes. Redirection...</span>
         </div>`;
-      await loadVoyages();
       setTimeout(() => {
         ev.target.reset();
         el.innerHTML = '';

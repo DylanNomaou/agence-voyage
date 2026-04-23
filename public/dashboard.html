@@ -111,7 +111,7 @@
       </button>
       <div class="nav-separator"></div>
       <p class="nav-section-label">Voyages</p>
-      <button class="nav-btn" onclick="showTab('voyages',this)">
+      <button class="nav-btn" id="nav-btn-voyages" onclick="showTab('voyages',this)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
         Catalogue
       </button>
@@ -184,7 +184,7 @@
       <div id="tab-accueil" class="tab-content active">
         <div class="globe-page">
           <div class="globe-wrap" id="globe-wrap">
-            <svg class="globe-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <svg class="globe-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <defs>
                 <radialGradient id="sphere-grad" cx="35%" cy="35%" r="65%">
                   <stop offset="0%" stop-color="#0d2a45"/>
@@ -212,7 +212,7 @@
           </div>
           <h2 class="globe-title">Bienvenue sur votre espace voyage</h2>
           <p class="globe-sub">Gérez vos destinations, vos réservations et vos albums depuis un seul endroit.</p>
-          <button class="btn-globe-cta" onclick="showTab('voyages', null)">
+          <button class="btn-globe-cta" onclick="showTab('voyages', document.getElementById('nav-btn-voyages'))">
             Explorer le catalogue
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
