@@ -68,60 +68,130 @@ function formatPriceCad(eurAmount) {
   return eurAmount.toLocaleString('fr-FR') + ' EUR';
 }
 
-// ── Voyage cards ──────────────────────────────────────────────────────────────
+// ── Carousel Destinations ─────────────────────────────────────────────────────
+const CAT_LABELS = {
+  plage: 'Plage', montagne: 'Montagne', ville: 'Ville',
+  aventure: 'Aventure', culture: 'Culture', autre: 'Autre',
+};
 
-function renderVoyageCard(v, index) {
-  const cc   = CAT_COLORS[v.categorie] || CAT_COLORS.ville;
-  const date = new Date(v.dateDepart).toLocaleDateString('fr-FR');
-  const desc = v.description.substring(0, 110) + '...';
+let _destVoyages   = [];
+let _destIndex     = 0;
+let _destTimer     = null;
+let _destAnimating = false;
 
-  return `
-    <div class="v-card reveal" style="transition-delay:${index * 0.08}s">
-      <div class="v-img-wrap">
-        <img class="v-img" src="${v.image || ''}" alt="${v.titre}" onerror="this.style.display='none'" />
-        <div class="v-img-overlay"></div>
-        <div class="v-img-badges">
-          ${v.vedette ? '<span class="badge-vedette">Vedette</span>' : ''}
-        </div>
-      </div>
-      <div class="v-body">
-        <div class="v-cat" style="--cat-bg:${cc.bg};--cat-bd:${cc.border};--cat-tx:${cc.text}">${v.categorie}</div>
-        <div class="v-title">${v.titre}</div>
-        <div class="v-dest">${v.destination}</div>
-        <div class="v-desc">${desc}</div>
-        <div class="v-meta">
-          <span>${date}</span>
-          <span>${v.duree} jours</span>
-          <span>${v.placesDisponibles} places</span>
-        </div>
-        <div class="v-footer">
-          <div class="v-price">${formatPriceCad(v.prix)}</div>
-          <a href="/dashboard.html#reserver" class="btn-reserve" onclick="goReserve(event)">Reserver</a>
-        </div>
-      </div>
-    </div>`;
-}
-
-async function loadFeaturedVoyages() {
-  const grid = document.getElementById('voyages-grid');
+async function initDestCarousel() {
   try {
     const r   = await fetch(API + '/voyages');
     const all = await r.json();
-
-    const vedettes = all.filter(v =>  v.vedette);
-    const rest     = all.filter(v => !v.vedette);
-    const voyages  = [...vedettes, ...rest].slice(0, 6);
-
-    if (!voyages.length) {
-      grid.innerHTML = '<div class="empty-state-grid">Aucun voyage disponible pour le moment.</div>';
+    if (!Array.isArray(all)) {
+      document.getElementById('voyages-carousel').innerHTML =
+        '<div class="empty-state-grid">Impossible de charger les voyages.</div>';
       return;
     }
-
-    grid.innerHTML = voyages.map((v, i) => renderVoyageCard(v, i)).join('');
-    document.querySelectorAll('.v-card.reveal').forEach(el => observer.observe(el));
+    const vedettes = all.filter(v => v.vedette);
+    const rest     = all.filter(v => !v.vedette);
+    _destVoyages   = [...vedettes, ...rest].slice(0, 6);
+    if (!_destVoyages.length) {
+      document.getElementById('voyages-carousel').innerHTML =
+        '<div class="empty-state-grid">Aucun voyage disponible pour le moment.</div>';
+      return;
+    }
+    buildDestStack();
+    updateDestInfo(0);
+    buildDestDots();
+    startDestTimer();
+    initDestSwipe();
   } catch {
-    grid.innerHTML = '<div class="empty-state-grid">Impossible de charger les voyages. Verifiez que le serveur est actif.</div>';
+    document.getElementById('voyages-carousel').innerHTML =
+      '<div class="empty-state-grid">Impossible de charger les voyages. Vérifiez que le serveur est actif.</div>';
   }
+}
+
+function buildDestStack() {
+  const stack = document.getElementById('dest-stack');
+  stack.innerHTML = '';
+  _destVoyages.forEach((v, i) => {
+    const div = document.createElement('div');
+    div.className   = 'dest-card';
+    div.dataset.idx = i;
+    div.dataset.pos = i < 5 ? i : 4;
+    div.innerHTML = `
+      <img src="${v.image || ''}" alt="${v.titre}" onerror="this.style.background='#0a1e33'" />
+      <div class="dest-card-overlay"></div>`;
+    stack.appendChild(div);
+  });
+}
+
+function buildDestDots() {
+  document.getElementById('dest-dots').innerHTML = _destVoyages.map((_, i) =>
+    `<div class="dest-dot${i === 0 ? ' active' : ''}" onclick="goDestSlide(${i})"></div>`
+  ).join('');
+}
+
+function updateDestInfo(idx) {
+  const v    = _destVoyages[idx];
+  const info = document.getElementById('dest-info');
+  info.classList.add('fading');
+  setTimeout(() => {
+    document.getElementById('dest-cat').textContent   = CAT_LABELS[v.categorie] || v.categorie;
+    document.getElementById('dest-title').textContent = v.titre;
+    const locEl = document.getElementById('dest-location');
+    locEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+    const locText = document.createTextNode(v.destination);
+    locEl.appendChild(locText);
+    document.getElementById('dest-desc').textContent  = v.description;
+    document.getElementById('dest-meta').innerHTML    =
+      `<span>${v.duree} jours</span><span>${formatPriceCad(v.prix)}</span><span>${v.placesDisponibles} places</span>`;
+    info.classList.remove('fading');
+  }, 150);
+  document.querySelectorAll('.dest-dot').forEach((d, i) =>
+    d.classList.toggle('active', i === idx));
+}
+
+function animateDestTo(newIdx, direction) {
+  if (_destAnimating || newIdx === _destIndex) return;
+  _destAnimating = true;
+  stopDestTimer();
+
+  const cards    = [...document.querySelectorAll('.dest-card')];
+  const exitClass = direction === 'next' ? 'dest-exit-left' : 'dest-exit-right';
+
+  const active = cards.find(c => +c.dataset.idx === _destIndex);
+  if (active) active.classList.add(exitClass);
+
+  _destIndex = newIdx;
+  updateDestInfo(newIdx);
+
+  const count = _destVoyages.length;
+  cards.forEach(card => {
+    if (card.classList.contains(exitClass)) { card.dataset.pos = 4; return; }
+    const pos = (card.dataset.idx - newIdx + count) % count;
+    card.dataset.pos = pos < 5 ? pos : 4;
+  });
+
+  setTimeout(() => {
+    if (active) active.classList.remove(exitClass);
+    _destAnimating = false;
+    startDestTimer();
+  }, 480);
+}
+
+function destNext() { animateDestTo((_destIndex + 1) % _destVoyages.length, 'next'); }
+function destPrev() { animateDestTo((_destIndex - 1 + _destVoyages.length) % _destVoyages.length, 'prev'); }
+function goDestSlide(i) { animateDestTo(i, i > _destIndex ? 'next' : 'prev'); }
+
+function startDestTimer() { _destTimer = setTimeout(() => { destNext(); startDestTimer(); }, 5000); }
+function stopDestTimer()  { clearTimeout(_destTimer); }
+
+function initDestSwipe() {
+  const el = document.getElementById('dest-stack');
+  let startX = 0;
+  el.addEventListener('touchstart', e => { startX = e.touches[0].clientX; stopDestTimer(); }, { passive: true });
+  el.addEventListener('touchend',   e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 40) dx < 0 ? destNext() : destPrev();
+    else startDestTimer();
+  });
 }
 
 // ── Contact form validation ───────────────────────────────────────────────────
@@ -226,4 +296,4 @@ function goReserve(ev) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
-fetchCadRate().then(() => loadFeaturedVoyages());
+fetchCadRate().then(() => initDestCarousel());

@@ -85,39 +85,31 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
     </div>
-    <div id="voyages-grid">
-      <!-- Skeletons -->
-      <div class="skeleton-card">
-        <div class="skeleton skeleton-img"></div>
-        <div class="skeleton-body">
-          <div class="skeleton skeleton-tag"></div>
-          <div class="skeleton skeleton-title"></div>
-          <div class="skeleton skeleton-desc"></div>
-          <div class="skeleton skeleton-line"></div>
-          <div class="skeleton skeleton-line-sm"></div>
-        </div>
-      </div>
-      <div class="skeleton-card">
-        <div class="skeleton skeleton-img"></div>
-        <div class="skeleton-body">
-          <div class="skeleton skeleton-tag"></div>
-          <div class="skeleton skeleton-title"></div>
-          <div class="skeleton skeleton-desc"></div>
-          <div class="skeleton skeleton-line"></div>
-          <div class="skeleton skeleton-line-sm"></div>
-        </div>
-      </div>
-      <div class="skeleton-card">
-        <div class="skeleton skeleton-img"></div>
-        <div class="skeleton-body">
-          <div class="skeleton skeleton-tag"></div>
-          <div class="skeleton skeleton-title"></div>
-          <div class="skeleton skeleton-desc"></div>
-          <div class="skeleton skeleton-line"></div>
-          <div class="skeleton skeleton-line-sm"></div>
-        </div>
-      </div>
+    <div id="voyages-carousel" class="dest-carousel">
+  <div class="dest-info-panel" id="dest-info">
+    <div class="dest-eyebrow" id="dest-cat"></div>
+    <h3 class="dest-title" id="dest-title">Chargement...</h3>
+    <div class="dest-location" id="dest-location"></div>
+    <p class="dest-desc" id="dest-desc"></p>
+    <div class="dest-meta" id="dest-meta"></div>
+    <a href="/dashboard.html#voyages" class="btn-dest-cta" id="dest-cta" onclick="goReserve(event)">
+      Voir ce voyage
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+  <div class="dest-stack-wrap">
+    <div class="dest-stack" id="dest-stack"></div>
+    <div class="dest-nav">
+      <button class="dest-arrow dest-prev" onclick="destPrev()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="dest-dots" id="dest-dots"></div>
+      <button class="dest-arrow dest-next" onclick="destNext()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 6 15 12 9 18"/></svg>
+      </button>
     </div>
+  </div>
+</div>
   </section>
 
   <!-- Pourquoi nous -->
