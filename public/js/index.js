@@ -140,8 +140,13 @@ function updateDestInfo(idx) {
     const locText = document.createTextNode(v.destination);
     locEl.appendChild(locText);
     document.getElementById('dest-desc').textContent  = v.description;
-    document.getElementById('dest-meta').innerHTML    =
-      `<span>${v.duree} jours</span><span>${formatPriceCad(v.prix)}</span><span>${v.placesDisponibles} places</span>`;
+    const metaEl = document.getElementById('dest-meta');
+    metaEl.innerHTML = '';
+    [`${+v.duree} jours`, formatPriceCad(v.prix), `${+v.placesDisponibles} places`].forEach(txt => {
+      const span = document.createElement('span');
+      span.textContent = txt;
+      metaEl.appendChild(span);
+    });
     info.classList.remove('fading');
   }, 150);
   document.querySelectorAll('.dest-dot').forEach((d, i) =>
@@ -176,11 +181,23 @@ function animateDestTo(newIdx, direction) {
   }, 480);
 }
 
-function destNext() { animateDestTo((_destIndex + 1) % _destVoyages.length, 'next'); }
-function destPrev() { animateDestTo((_destIndex - 1 + _destVoyages.length) % _destVoyages.length, 'prev'); }
-function goDestSlide(i) { animateDestTo(i, i > _destIndex ? 'next' : 'prev'); }
+function destNext() {
+  if (!_destVoyages.length) return;
+  animateDestTo((_destIndex + 1) % _destVoyages.length, 'next');
+}
+function destPrev() {
+  if (!_destVoyages.length) return;
+  animateDestTo((_destIndex - 1 + _destVoyages.length) % _destVoyages.length, 'prev');
+}
+function goDestSlide(i) {
+  if (i === _destIndex || !_destVoyages.length) return;
+  const count = _destVoyages.length;
+  const fwd = (i - _destIndex + count) % count;
+  const bwd = (_destIndex - i + count) % count;
+  animateDestTo(i, fwd <= bwd ? 'next' : 'prev');
+}
 
-function startDestTimer() { _destTimer = setTimeout(() => { destNext(); startDestTimer(); }, 5000); }
+function startDestTimer() { _destTimer = setTimeout(() => { destNext(); }, 5000); }
 function stopDestTimer()  { clearTimeout(_destTimer); }
 
 function initDestSwipe() {
