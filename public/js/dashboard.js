@@ -170,6 +170,7 @@ function showTab(name, btn) {
   if (name === 'profile')      loadProfileTab();
   if (name === 'voyages') loadVoyages();
   if (name === 'albums' && typeof loadAlbums === 'function') loadAlbums();
+  if (name === 'admin-reservations') loadAdminReservations();
 }
 
 function logout() {
@@ -1169,6 +1170,98 @@ async function saveProfile(ev) {
   } catch (err) {
     el.innerHTML = '<div class="alert-error" style="margin-top:12px">Erreur reseau : ' + err.message + '</div>';
   }
+}
+
+// ── Admin Réservations ─────────────────────────────────────────────────────────
+let _adminResPage = 1;
+
+async function loadAdminReservations(page = 1) {
+  _adminResPage = page;
+  const c = document.getElementById('admin-reservations-container');
+  if (!token || currentUser?.role !== 'admin') {
+    c.innerHTML = '<div class="empty-state">Accès administrateur requis.</div>';
+    return;
+  }
+  c.innerHTML = '<div class="empty-state">Chargement...</div>';
+  try {
+    const r = await fetch(`${API}/reservations?page=${page}&limit=10`, { headers: authHeader() });
+    if (r.status === 401) { logout(); showTab('login', null); return; }
+    const res = await r.json();
+    if (!res.data || !res.data.length) {
+      c.innerHTML = '<div class="empty-state">Aucune réservation.</div>';
+      renderPagination('admin-res-pagination', res.page, res.totalPages, loadAdminReservations);
+      return;
+    }
+    c.innerHTML = `
+      <table class="admin-res-table">
+        <thead><tr>
+          <th>Client</th><th>Email</th><th>Tél.</th>
+          <th>Voyage</th><th>Destination</th>
+          <th>Pers.</th><th>Total</th><th>Statut</th><th>Date</th><th></th>
+        </tr></thead>
+        <tbody>${res.data.map(renderAdminResRow).join('')}</tbody>
+      </table>`;
+    renderPagination('admin-res-pagination', res.page, res.totalPages, loadAdminReservations);
+  } catch (err) {
+    c.innerHTML = '<div class="alert-error" style="margin:16px">' + err.message + '</div>';
+  }
+}
+
+function renderAdminResRow(r) {
+  const statusOpts = ['en_attente', 'confirmee', 'annulee'].map(s =>
+    `<option value="${s}" ${r.statut === s ? 'selected' : ''}>${s.replace('_', ' ')}</option>`
+  ).join('');
+  const clientData = JSON.stringify({ nom: r.client?.nom, email: r.client?.email, tel: r.client?.telephone, voyage: r.voyage?.titre });
+  return `
+    <tr>
+      <td><span class="res-client-name">${r.client?.nom || '—'}</span></td>
+      <td><span class="res-client-email">${r.client?.email || '—'}</span></td>
+      <td><span class="res-client-tel">${r.client?.telephone || '—'}</span></td>
+      <td class="td-primary">${r.voyage?.titre || '—'}</td>
+      <td style="color:#64748b">${r.voyage?.destination || '—'}</td>
+      <td>${r.nombrePersonnes}</td>
+      <td style="color:#38bdf8;font-weight:600">${formatPrice(r.prixTotal)}</td>
+      <td>
+        <select class="statut-select" onchange="changeResStatut('${r._id}', this.value)">
+          ${statusOpts}
+        </select>
+      </td>
+      <td class="td-date">${new Date(r.createdAt).toLocaleDateString('fr-FR')}</td>
+      <td>
+        <button class="btn-contact-client" onclick='openContactModal(${JSON.stringify(clientData)})'>
+          Contacter
+        </button>
+      </td>
+    </tr>`;
+}
+
+async function changeResStatut(id, statut) {
+  try {
+    const r = await fetch(`${API}/reservations/${id}/statut`, {
+      method: 'PUT',
+      headers: { ...jsonHeader(), ...authHeader() },
+      body: JSON.stringify({ statut }),
+    });
+    if (!r.ok) alert('Erreur lors du changement de statut.');
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message);
+  }
+}
+
+function openContactModal(dataJson) {
+  const d = JSON.parse(dataJson);
+  document.getElementById('contact-modal-name').textContent = 'Contacter ' + (d.nom || 'le client');
+  document.getElementById('contact-modal-body').innerHTML = `
+    <div style="margin-bottom:6px"><strong style="color:#e2e8f0">Email :</strong> ${d.email || '—'}</div>
+    <div style="margin-bottom:6px"><strong style="color:#e2e8f0">Téléphone :</strong> ${d.tel || '—'}</div>
+    <div><strong style="color:#e2e8f0">Voyage :</strong> ${d.voyage || '—'}</div>`;
+  const subject = encodeURIComponent('Votre réservation — ' + (d.voyage || ''));
+  document.getElementById('contact-modal-mailto').href = `mailto:${d.email || ''}?subject=${subject}`;
+  document.getElementById('contact-client-modal').style.display = 'flex';
+}
+
+function closeContactModal() {
+  document.getElementById('contact-client-modal').style.display = 'none';
 }
 
 // ── Datepicker + raccourcis clavier ────────────────────────────────────────────

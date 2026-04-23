@@ -1991,3 +1991,45 @@ input.valid {
 }
 .pg-disabled { opacity: 0.3; cursor: not-allowed; }
 .pg-ellipsis { color: #64748b; padding: 0 4px; font-size: 0.82rem; }
+
+/* ── Admin réservations ────────────────────────────────────────────────────── */
+.admin-res-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.admin-res-table th {
+  text-align: left;
+  padding: 10px 12px;
+  color: #64748b;
+  font-weight: 500;
+  border-bottom: 1px solid #1a3a5c;
+  white-space: nowrap;
+}
+.admin-res-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(26,58,92,0.4);
+  vertical-align: middle;
+}
+.admin-res-table tr:hover td { background: rgba(56,189,248,0.03); }
+.res-client-name  { font-weight: 600; color: #e2e8f0; display: block; }
+.res-client-email { color: #64748b; font-size: 0.78rem; }
+.res-client-tel   { color: #94a3b8; font-size: 0.78rem; }
+
+.statut-select {
+  background: #0a1e33;
+  border: 1px solid #1a3a5c;
+  color: #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.btn-contact-client {
+  padding: 4px 10px;
+  background: rgba(56,189,248,0.1);
+  border: 1px solid rgba(56,189,248,0.3);
+  color: #38bdf8;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-contact-client:hover { background: rgba(56,189,248,0.2); }
