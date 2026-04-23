@@ -311,6 +311,84 @@ function goReserve(ev) {
     : '/dashboard.html#login';
 }
 
+// ── Souvenirs Carousel ────────────────────────────────────────────────────────
+let _sPhotos = [];
+let _sIdx    = 0;
+let _sTimer  = null;
+
+async function loadSouvenirs() {
+  try {
+    const r      = await fetch(API + '/albums');
+    if (!r.ok) return;
+    const albums = await r.json();
+    if (!Array.isArray(albums)) return;
+    _sPhotos = albums.flatMap(a => Array.isArray(a.photos) ? a.photos : []);
+    if (!_sPhotos.length) return;
+    document.getElementById('souvenirs').style.display = '';
+    buildSouvenirsSlides();
+    buildSouvenirsDots();
+    startSouvenirsTimer();
+    initSouvenirsSwipe();
+  } catch { /* silencieux — section reste masquée */ }
+}
+
+function buildSouvenirsSlides() {
+  const track = document.getElementById('souvenirs-track');
+  track.innerHTML = '';
+  _sPhotos.forEach(p => {
+    const slide = document.createElement('div');
+    slide.className = 'souvenirs-slide';
+    const img = document.createElement('img');
+    img.src = p.url || '';
+    img.alt = p.legende || '';
+    img.onerror = () => { img.style.background = '#0a1e33'; };
+    slide.appendChild(img);
+    if (p.legende) {
+      const cap = document.createElement('div');
+      cap.className = 'souvenirs-caption';
+      cap.textContent = p.legende;
+      slide.appendChild(cap);
+    }
+    track.appendChild(slide);
+  });
+}
+
+function buildSouvenirsDots() {
+  const el = document.getElementById('souvenirs-dots');
+  el.innerHTML = '';
+  _sPhotos.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'souvenirs-dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goSouvenirSlide(i);
+    el.appendChild(dot);
+  });
+}
+
+function setSouvenirsPos(idx) {
+  _sIdx = ((idx % _sPhotos.length) + _sPhotos.length) % _sPhotos.length;
+  document.getElementById('souvenirs-track').style.transform = `translateX(-${_sIdx * 100}%)`;
+  document.querySelectorAll('.souvenirs-dot').forEach((d, i) =>
+    d.classList.toggle('active', i === _sIdx));
+}
+
+function souvenirsNext()    { if (!_sPhotos.length) return; setSouvenirsPos(_sIdx + 1); resetSouvenirsTimer(); }
+function souvenirsPrev()    { if (!_sPhotos.length) return; setSouvenirsPos(_sIdx - 1); resetSouvenirsTimer(); }
+function goSouvenirSlide(i) { setSouvenirsPos(i); resetSouvenirsTimer(); }
+
+function startSouvenirsTimer() { _sTimer = setInterval(() => souvenirsNext(), 4000); }
+function resetSouvenirsTimer() { clearInterval(_sTimer); startSouvenirsTimer(); }
+
+function initSouvenirsSwipe() {
+  const el = document.getElementById('souvenirs-track');
+  let sx = 0;
+  el.addEventListener('touchstart', e => { sx = e.touches[0].clientX; clearInterval(_sTimer); }, { passive: true });
+  el.addEventListener('touchend',   e => {
+    const dx = e.changedTouches[0].clientX - sx;
+    if (Math.abs(dx) > 40) dx < 0 ? souvenirsNext() : souvenirsPrev();
+    else startSouvenirsTimer();
+  });
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
-fetchCadRate().then(() => initDestCarousel());
+fetchCadRate().then(() => { initDestCarousel(); loadSouvenirs(); });
