@@ -365,17 +365,18 @@ function buildSouvenirsDots() {
 }
 
 function setSouvenirsPos(idx) {
+  if (!_sPhotos.length) return;
   _sIdx = ((idx % _sPhotos.length) + _sPhotos.length) % _sPhotos.length;
   document.getElementById('souvenirs-track').style.transform = `translateX(-${_sIdx * 100}%)`;
   document.querySelectorAll('.souvenirs-dot').forEach((d, i) =>
     d.classList.toggle('active', i === _sIdx));
 }
 
-function souvenirsNext()    { if (!_sPhotos.length) return; setSouvenirsPos(_sIdx + 1); resetSouvenirsTimer(); }
-function souvenirsPrev()    { if (!_sPhotos.length) return; setSouvenirsPos(_sIdx - 1); resetSouvenirsTimer(); }
+function souvenirsNext()    { setSouvenirsPos(_sIdx + 1); resetSouvenirsTimer(); }
+function souvenirsPrev()    { setSouvenirsPos(_sIdx - 1); resetSouvenirsTimer(); }
 function goSouvenirSlide(i) { setSouvenirsPos(i); resetSouvenirsTimer(); }
 
-function startSouvenirsTimer() { _sTimer = setInterval(() => souvenirsNext(), 4000); }
+function startSouvenirsTimer() { clearInterval(_sTimer); _sTimer = setInterval(() => souvenirsNext(), 4000); }
 function resetSouvenirsTimer() { clearInterval(_sTimer); startSouvenirsTimer(); }
 
 function initSouvenirsSwipe() {

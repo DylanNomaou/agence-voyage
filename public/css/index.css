@@ -1421,3 +1421,8 @@ footer {
   transition: background 0.2s, transform 0.2s;
 }
 .souvenirs-dot.active { background: #38bdf8; transform: scale(1.4); }
+
+@media (max-width: 768px) {
+  .souvenirs-slide img { height: 260px; }
+  .souvenirs-carousel-wrap { max-height: 280px; }
+}
