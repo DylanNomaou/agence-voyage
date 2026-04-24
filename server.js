@@ -17,8 +17,12 @@ app.use(cors({ origin: process.env.ALLOWED_ORIGIN || '*' }));
 // Body parsing with size limit
 app.use(express.json({ limit: '50kb' }));
 
-// NoSQL injection prevention
-app.use(mongoSanitize());
+// NoSQL injection prevention (req.query is a getter in Express 5 — sanitize body/params only)
+app.use((req, _res, next) => {
+  if (req.body)   req.body   = mongoSanitize.sanitize(req.body);
+  if (req.params) req.params = mongoSanitize.sanitize(req.params);
+  next();
+});
 
 // Static files
 app.use(express.static('public'));
