@@ -1901,7 +1901,7 @@ input.valid {
 
 /* ── Logo animé ── */
 .welcome-logo-anim {
-  width: min(420px, 72vw);
+  width: min(700px, 88vw);
   height: auto;
   display: block;
   animation: logo-breathe 3.6s ease-in-out infinite;
@@ -2067,7 +2067,7 @@ input.valid {
 
   /* Welcome page compact */
   .globe-page { min-height: auto; gap: 18px; padding: 28px 16px; }
-  .welcome-logo-anim { width: min(320px, 68vw); }
+  .welcome-logo-anim { width: min(560px, 86vw); }
   .globe-title { font-size: 1.3rem; }
 
   /* Form grids collapse to 1 col */
@@ -2094,7 +2094,7 @@ input.valid {
 
 @media (max-width: 480px) {
   main { padding: 12px; }
-  .welcome-logo-anim { width: min(260px, 60vw); }
+  .welcome-logo-anim { width: min(420px, 84vw); }
   .card-panel-lg { padding: 20px 16px; }
   .detail-stats { grid-template-columns: 1fr 1fr; }
   .detail-img-wrap { height: 220px; }
