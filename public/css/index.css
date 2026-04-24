@@ -1280,10 +1280,10 @@ footer {
 
 /* Fan de cartes */
 .dest-stack-wrap {
-  flex: 1;
+  flex: 0 0 260px;
+  max-width: 260px;
   position: relative;
   overflow: visible;
-  /* padding-right reserves room for fanned cards peeking right */
   padding-right: 20px;
 }
 
