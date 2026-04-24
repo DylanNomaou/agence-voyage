@@ -1200,7 +1200,7 @@ footer {
   align-items: center;
   gap: 48px;
   padding: 20px 0 20px 0;
-  min-height: 420px;
+  min-height: 580px;
 }
 
 .dest-info-panel {
@@ -1289,7 +1289,7 @@ footer {
 
 .dest-stack {
   position: relative;
-  height: 380px;
+  height: 520px;
   overflow: visible;
 }
 
@@ -1379,7 +1379,7 @@ footer {
   .dest-carousel { flex-direction: column; gap: 24px; }
   .dest-info-panel { max-width: 100%; flex: none; }
   .dest-stack-wrap { padding-right: 0; }
-  .dest-stack { height: 260px; }
+  .dest-stack { height: 380px; }
   /* On mobile fan: reduce rotation angles so cards don't go off-screen */
   .dest-card[data-pos="1"] { transform: rotate(4deg);  }
   .dest-card[data-pos="2"] { transform: rotate(8deg);  }
