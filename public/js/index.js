@@ -115,9 +115,22 @@ function buildDestStack() {
     div.className   = 'dest-card';
     div.dataset.idx = i;
     div.dataset.pos = i < 5 ? i : 4;
-    div.innerHTML = `
-      <img src="${v.image || ''}" alt="${v.titre}" onerror="this.style.background='#0a1e33'" />
-      <div class="dest-card-overlay"></div>`;
+
+    const img = document.createElement('img');
+    img.src = v.image || '';
+    img.alt = v.titre;
+    img.onerror = () => { img.style.background = '#0a1e33'; };
+
+    const overlay = document.createElement('div');
+    overlay.className = 'dest-card-overlay';
+
+    const tag = document.createElement('div');
+    tag.className   = 'dest-card-tag';
+    tag.textContent = v.titre;
+
+    div.appendChild(img);
+    div.appendChild(overlay);
+    div.appendChild(tag);
     stack.appendChild(div);
   });
 }
@@ -389,6 +402,24 @@ function initSouvenirsSwipe() {
     else startSouvenirsTimer();
   });
 }
+
+// ── Mobile nav toggle ─────────────────────────────────────────────────────────
+
+function toggleMobileNav() {
+  const btn   = document.getElementById('nav-hamburger');
+  const links = document.querySelector('.nav-links');
+  if (!btn || !links) return;
+  const open = links.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+// Close mobile nav when a link is clicked
+document.querySelectorAll('.nav-link, .nav-cta').forEach(a => {
+  a.addEventListener('click', () => {
+    document.querySelector('.nav-links')?.classList.remove('open');
+    document.getElementById('nav-hamburger')?.classList.remove('open');
+  });
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 

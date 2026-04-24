@@ -1885,46 +1885,34 @@ input.valid {
     color: #f87171;
 }
 
-/* ── Globe ─────────────────────────────────────────────────────────────────── */
+/* ── Globe 3D canvas ────────────────────────────────────────────────────────── */
 .globe-page {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: calc(100vh - 70px);
-  gap: 24px;
+  gap: 28px;
   padding: 40px 20px;
 }
 
 .globe-wrap {
-  width: 220px;
-  height: 220px;
+  width: 280px;
+  height: 280px;
   cursor: pointer;
   transition: filter 0.3s, transform 0.3s;
-  filter: drop-shadow(0 0 12px rgba(56,189,248,0.15));
+  filter: drop-shadow(0 0 18px rgba(56,189,248,0.22));
 }
 
 .globe-wrap:hover {
-  filter: drop-shadow(0 0 28px rgba(56,189,248,0.5));
-  transform: scale(1.06);
+  filter: drop-shadow(0 0 40px rgba(56,189,248,0.65));
+  transform: scale(1.05);
 }
 
-.globe-svg { width: 100%; height: 100%; }
-
-@keyframes spin-m1 { 0%,100% { transform: scaleX(1); }    50%          { transform: scaleX(0.07); } }
-@keyframes spin-m2 { 0%,100% { transform: scaleX(0.5); }  25%          { transform: scaleX(1); }    75% { transform: scaleX(0.07); } }
-@keyframes spin-m3 { 0%,100% { transform: scaleX(0.07); } 50%          { transform: scaleX(1); } }
-
-.meridian-1 { animation: spin-m1 6s linear infinite; transform-box: fill-box; transform-origin: center; }
-.meridian-2 { animation: spin-m2 6s linear infinite; transform-box: fill-box; transform-origin: center; }
-.meridian-3 { animation: spin-m3 6s linear infinite; transform-box: fill-box; transform-origin: center; }
-
-.globe-wrap:hover .meridian-1,
-.globe-wrap:hover .meridian-2,
-.globe-wrap:hover .meridian-3 { animation-duration: 2.5s; }
+#globe-canvas { display: block; }
 
 .globe-title {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: #e2e8f0;
   text-align: center;
@@ -1934,7 +1922,7 @@ input.valid {
 .globe-sub {
   color: #64748b;
   text-align: center;
-  max-width: 400px;
+  max-width: 420px;
   font-size: 0.9rem;
   line-height: 1.6;
 }
@@ -1955,6 +1943,104 @@ input.valid {
 }
 
 .btn-globe-cta:hover { opacity: 0.85; transform: translateY(-2px); }
+
+/* ── Hamburger button (dashboard sidebar toggle) ────────────────────────────── */
+.btn-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  padding: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid #1a3a5c;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.2s;
+}
+.btn-hamburger:hover { border-color: rgba(56,189,248,0.4); }
+.btn-hamburger span {
+  display: block;
+  width: 100%;
+  height: 1.5px;
+  background: #94a3b8;
+  border-radius: 2px;
+  transition: all 0.22s;
+}
+.btn-hamburger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.btn-hamburger.open span:nth-child(2) { opacity: 0; }
+.btn-hamburger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+/* ── Sidebar overlay (mobile) ──────────────────────────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(3px);
+  z-index: 49;
+}
+.sidebar-overlay.active { display: block; }
+
+/* ── Mobile responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Show hamburger */
+  .btn-hamburger { display: flex; }
+
+  /* Sidebar becomes fixed slide-in overlay */
+  #main-sidebar {
+    position: fixed;
+    top: 57px;
+    left: -220px;
+    bottom: 0;
+    z-index: 50;
+    transition: left 0.25s ease;
+    overflow-y: auto;
+  }
+  #main-sidebar.sidebar-open { left: 0; }
+
+  /* Main takes full width */
+  .app-layout { display: block; }
+  main { padding: 16px; }
+
+  /* Globe page compact */
+  .globe-page { min-height: calc(100vh - 120px); gap: 20px; padding: 24px 16px; }
+  .globe-wrap { width: 220px; height: 220px; }
+  .globe-title { font-size: 1.2rem; }
+
+  /* Form grids collapse to 1 col */
+  .form-grid-2 { grid-template-columns: 1fr; }
+  .detail-stats { grid-template-columns: 1fr 1fr; }
+
+  /* Tables: horizontal scroll */
+  .table-wrap { overflow-x: auto; }
+  table { min-width: 500px; }
+  .admin-res-table { min-width: 560px; }
+
+  /* Tab headers */
+  .tab-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+
+  /* Filter bar */
+  .filter-input-prix, .filter-input-dest { width: 100% !important; }
+
+  /* Voyage grid */
+  .voyages-grid { grid-template-columns: 1fr; }
+
+  /* Header — hide verbose elements on very small */
+  .status-indicator { display: none; }
+}
+
+@media (max-width: 480px) {
+  main { padding: 12px; }
+  .globe-wrap { width: 180px; height: 180px; }
+  .card-panel-lg { padding: 20px 16px; }
+  .detail-stats { grid-template-columns: 1fr 1fr; }
+  .detail-img-wrap { height: 220px; }
+  header { padding: 0 12px; }
+  .currency-wrap { display: none; }
+}
 
 /* ── Pagination ────────────────────────────────────────────────────────────── */
 .pagination {

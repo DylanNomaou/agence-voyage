@@ -1446,8 +1446,133 @@ document.addEventListener('change', e => {
   }
 });
 
+// ── Globe 3D canvas ────────────────────────────────────────────────────────────
+function initGlobe() {
+  const canvas = document.getElementById('globe-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const S  = canvas.width;   // 280
+  const cx = S / 2, cy = S / 2;
+  const r  = S * 0.43;       // sphere radius
+  let angle = 0;
+  let fast  = false;
+
+  const wrap = document.getElementById('globe-wrap');
+  if (wrap) {
+    wrap.addEventListener('mouseenter', () => { fast = true; });
+    wrap.addEventListener('mouseleave', () => { fast = false; });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, S, S);
+
+    // Sphere base fill
+    const bg = ctx.createRadialGradient(cx - r * 0.28, cy - r * 0.28, r * 0.04, cx, cy, r);
+    bg.addColorStop(0, '#0e2d49');
+    bg.addColorStop(1, '#030c15');
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = bg;
+    ctx.fill();
+
+    // Clip everything to sphere
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 0.5, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Latitude lines
+    for (const latDeg of [-60, -30, 0, 30, 60]) {
+      const phi = (latDeg * Math.PI) / 180;
+      const ry  = Math.abs(Math.cos(phi)) * r;
+      const py  = cy + Math.sin(phi) * r;
+      ctx.beginPath();
+      ctx.ellipse(cx, py, ry, ry * 0.11, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = latDeg === 0 ? 'rgba(56,189,248,0.5)' : 'rgba(56,189,248,0.14)';
+      ctx.lineWidth   = latDeg === 0 ? 1.3 : 0.7;
+      ctx.stroke();
+    }
+
+    // Meridians — animated Y-axis rotation
+    const numM = 9;
+    for (let m = 0; m < numM; m++) {
+      const lng   = (m / numM) * Math.PI * 2 + angle;
+      const depth = Math.cos(lng);          // −1 back → +1 front
+      if (depth < -0.25) continue;          // skip mostly-hidden meridians
+
+      const alpha = 0.08 + 0.6 * Math.max(0, depth);
+      const lw    = 0.6 + Math.max(0, depth) * 0.5;
+
+      ctx.beginPath();
+      let started = false;
+      for (let latStep = -90; latStep <= 90; latStep += 3) {
+        const phi  = (latStep * Math.PI) / 180;
+        const cosP = Math.cos(phi);
+        const x3d  = cosP * Math.cos(lng);
+        const y3d  = Math.sin(phi);
+        const z3d  = cosP * Math.sin(lng);
+        if (z3d < -0.04) { started = false; continue; }
+        const px = cx + r * x3d;
+        const py = cy - r * y3d;
+        if (!started) { ctx.moveTo(px, py); started = true; }
+        else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = `rgba(56,189,248,${alpha.toFixed(2)})`;
+      ctx.lineWidth   = lw;
+      ctx.stroke();
+    }
+
+    ctx.restore();
+
+    // Outer ring glow
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(56,189,248,0.38)';
+    ctx.lineWidth   = 1.5;
+    ctx.stroke();
+
+    // Specular highlight
+    const hl = ctx.createRadialGradient(cx - r * 0.28, cy - r * 0.28, 0, cx - r * 0.28, cy - r * 0.28, r * 0.6);
+    hl.addColorStop(0, 'rgba(56,189,248,0.11)');
+    hl.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = hl;
+    ctx.fill();
+
+    angle += fast ? 0.028 : 0.007;
+    requestAnimationFrame(draw);
+  }
+
+  draw();
+}
+
+// ── Mobile sidebar ─────────────────────────────────────────────────────────────
+function toggleSidebar() {
+  const sidebar  = document.getElementById('main-sidebar');
+  const overlay  = document.getElementById('sidebar-overlay');
+  const btn      = document.getElementById('sidebar-toggle');
+  if (!sidebar) return;
+  const open = sidebar.classList.toggle('sidebar-open');
+  overlay?.classList.toggle('active', open);
+  btn?.classList.toggle('open', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById('main-sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const btn     = document.getElementById('sidebar-toggle');
+  sidebar?.classList.remove('sidebar-open');
+  overlay?.classList.remove('active');
+  btn?.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
 // ── Datepicker + raccourcis clavier ────────────────────────────────────────────
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMsgModal(); closeContactModal(); } });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeMsgModal(); closeContactModal(); closeSidebar(); }
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof flatpickr !== 'undefined') {
@@ -1460,4 +1585,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  initGlobe();
+
+  // Close sidebar on nav button click (mobile)
+  document.getElementById('main-sidebar')?.addEventListener('click', e => {
+    if (e.target.closest('.nav-btn') && window.innerWidth < 768) closeSidebar();
+  });
 });

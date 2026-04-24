@@ -35,6 +35,9 @@
 
   <!-- Header -->
   <header class="relative z-10 flex items-center gap-4 px-6 py-3.5 border-b border-[#1a3a5c]">
+    <button class="btn-hamburger" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
     <a href="/" class="logo-link">
       <img src="/img/logoCreerBonheurLong.png" alt="Créer SonBonheur" class="logo-img" />
       <div class="logo-subtitle">Tableau de bord</div>
@@ -80,8 +83,10 @@
   </header>
 
   <div class="relative z-10 flex app-layout">
+    <!-- Mobile sidebar overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
     <!-- Sidebar -->
-    <aside>
+    <aside id="main-sidebar">
       <!-- Compte -->
       <div class="sidebar-account">
         <p class="sidebar-section-label">Compte</p>
@@ -200,31 +205,7 @@
       <div id="tab-accueil" class="tab-content active">
         <div class="globe-page">
           <div class="globe-wrap" id="globe-wrap">
-            <svg class="globe-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <defs>
-                <radialGradient id="sphere-grad" cx="35%" cy="35%" r="65%">
-                  <stop offset="0%" stop-color="#0d2a45"/>
-                  <stop offset="100%" stop-color="#030c15"/>
-                </radialGradient>
-                <clipPath id="sphere-clip">
-                  <circle cx="100" cy="100" r="88"/>
-                </clipPath>
-              </defs>
-              <circle cx="100" cy="100" r="88" fill="url(#sphere-grad)"/>
-              <g clip-path="url(#sphere-clip)">
-                <ellipse class="meridian meridian-1" cx="100" cy="100" ry="88" rx="88" fill="none" stroke="#1a3a5c" stroke-width="1"/>
-                <ellipse class="meridian meridian-2" cx="100" cy="100" ry="88" rx="44" fill="none" stroke="#1a3a5c" stroke-width="1"/>
-                <ellipse class="meridian meridian-3" cx="100" cy="100" ry="88" rx="8" fill="none" stroke="#1a3a5c" stroke-width="1"/>
-                <ellipse cx="100" cy="68"  rx="78" ry="20" fill="none" stroke="#1a3a5c" stroke-width="0.8"/>
-                <ellipse cx="100" cy="100" rx="88" ry="24" fill="none" stroke="#38bdf8" stroke-width="1" opacity="0.35"/>
-                <ellipse cx="100" cy="132" rx="78" ry="20" fill="none" stroke="#1a3a5c" stroke-width="0.8"/>
-                <ellipse cx="100" cy="48"  rx="52" ry="14" fill="none" stroke="#1a3a5c" stroke-width="0.7"/>
-                <ellipse cx="100" cy="152" rx="52" ry="14" fill="none" stroke="#1a3a5c" stroke-width="0.7"/>
-              </g>
-              <circle cx="100" cy="100" r="88" fill="none" stroke="#1a3a5c" stroke-width="2"/>
-              <circle cx="100" cy="100" r="88" fill="none" stroke="#38bdf8" stroke-width="1" opacity="0.25"/>
-              <ellipse cx="72" cy="68" rx="26" ry="20" fill="#38bdf8" opacity="0.06"/>
-            </svg>
+            <canvas id="globe-canvas" width="280" height="280" aria-hidden="true"></canvas>
           </div>
           <h2 class="globe-title">Bienvenue sur votre espace voyage</h2>
           <p class="globe-sub">Gérez vos destinations, vos réservations et vos albums depuis un seul endroit.</p>
