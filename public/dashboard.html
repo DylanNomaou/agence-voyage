@@ -204,15 +204,55 @@
       <!-- ACCUEIL -->
       <div id="tab-accueil" class="tab-content active">
         <div class="globe-page">
-          <div class="globe-wrap" id="globe-wrap">
-            <canvas id="globe-canvas" width="280" height="280" aria-hidden="true"></canvas>
+
+          <!-- Décors de fond -->
+          <div class="gp-bg" aria-hidden="true">
+            <img src="/img/logoRond.png" class="gp-logo-wm" alt="" />
+            <div class="gp-glow"></div>
+            <div class="gp-ring gp-ring-1"></div>
+            <div class="gp-ring gp-ring-2"></div>
+            <div class="gp-ring gp-ring-3"></div>
           </div>
-          <h2 class="globe-title">Bienvenue sur votre espace voyage</h2>
+
+          <!-- Globe 3D -->
+          <div class="globe-wrap" id="globe-wrap">
+            <canvas id="globe-canvas" width="400" height="400" aria-hidden="true"></canvas>
+          </div>
+
+          <!-- Badge -->
+          <div class="gp-badge">
+            <div class="gp-badge-dot"></div>
+            Espace de gestion
+          </div>
+
+          <!-- Titre -->
+          <h2 class="globe-title">Bienvenue sur votre<br><span class="globe-title-accent">espace voyage</span></h2>
           <p class="globe-sub">Gérez vos destinations, vos réservations et vos albums depuis un seul endroit.</p>
+
+          <!-- Stats rapides -->
+          <div class="gp-stats">
+            <div class="gp-stat">
+              <span class="gp-stat-num" id="ws-voyages">—</span>
+              <span class="gp-stat-lbl">Voyages</span>
+            </div>
+            <div class="gp-stat-sep"></div>
+            <div class="gp-stat">
+              <span class="gp-stat-num" id="ws-reservations">—</span>
+              <span class="gp-stat-lbl">Réservations</span>
+            </div>
+            <div class="gp-stat-sep"></div>
+            <div class="gp-stat">
+              <span class="gp-stat-num" id="ws-messages">—</span>
+              <span class="gp-stat-lbl">Messages</span>
+            </div>
+          </div>
+
+          <!-- CTA -->
           <button class="btn-globe-cta" onclick="showTab('voyages', document.getElementById('nav-btn-voyages'))">
             Explorer le catalogue
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
+
         </div>
       </div>
 

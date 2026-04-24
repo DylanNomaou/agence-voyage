@@ -182,6 +182,7 @@ function showTab(name, btn) {
   if (name === 'voyages') loadVoyages();
   if (name === 'albums' && typeof loadAlbums === 'function') loadAlbums();
   if (name === 'admin-reservations') loadAdminReservations();
+  if (name === 'accueil') loadWelcomeStats();
 }
 
 function logout() {
@@ -190,6 +191,56 @@ function logout() {
   localStorage.removeItem('token');
   localStorage.removeItem('currentUser');
   updateAuthUI();
+}
+
+// ── Stats page d'accueil ───────────────────────────────────────────────────────
+function _animateCount(el, target) {
+  if (!el) return;
+  const dur = 900;
+  const start = performance.now();
+  const run = (now) => {
+    const p    = Math.min((now - start) / dur, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(ease * target);
+    if (p < 1) requestAnimationFrame(run);
+  };
+  requestAnimationFrame(run);
+}
+
+async function loadWelcomeStats() {
+  // Voyages (public)
+  try {
+    const r = await fetch(`${API}/voyages`);
+    if (r.ok) {
+      const d = await r.json();
+      const count = Array.isArray(d) ? d.length : (d.total ?? 0);
+      _animateCount(document.getElementById('ws-voyages'), count);
+    }
+  } catch { /* ignore */ }
+
+  if (!token) return;
+
+  // Réservations (client ou admin)
+  try {
+    const r = await fetch(`${API}/reservations`, { headers: authHeader() });
+    if (r.ok) {
+      const d = await r.json();
+      const count = Array.isArray(d) ? d.length : (d.total ?? 0);
+      _animateCount(document.getElementById('ws-reservations'), count);
+    }
+  } catch { /* ignore */ }
+
+  // Messages (admin only)
+  if (currentUser?.role === 'admin') {
+    try {
+      const r = await fetch(`${API}/contact`, { headers: authHeader() });
+      if (r.ok) {
+        const d = await r.json();
+        const count = Array.isArray(d) ? d.length : (d.total ?? 0);
+        _animateCount(document.getElementById('ws-messages'), count);
+      }
+    } catch { /* ignore */ }
+  }
 }
 
 // ── Validation ─────────────────────────────────────────────────────────────────
@@ -1586,6 +1637,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   initGlobe();
+  loadWelcomeStats();
 
   // Close sidebar on nav button click (mobile)
   document.getElementById('main-sidebar')?.addEventListener('click', e => {
