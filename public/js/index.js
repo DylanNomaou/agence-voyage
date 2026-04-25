@@ -1,4 +1,4 @@
-const API = 'http://localhost:5000/api';
+const API = window.location.origin + '/api';
 
 const CAT_COLORS = {
   plage:    { bg: 'rgba(56,189,248,0.1)',  border: 'rgba(56,189,248,0.22)',  text: '#38bdf8' },
