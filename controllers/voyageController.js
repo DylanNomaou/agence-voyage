@@ -55,7 +55,7 @@ const getVoyage = async (req, res) => {
 const createVoyage = async (req, res) => {
   try {
     const data = { ...req.body };
-    if (req.file) data.image = '/uploads/' + req.file.filename;
+    if (req.cloudinaryUrl) data.image = req.cloudinaryUrl;
     const voyage = await Voyage.create(data);
     res.status(201).json(voyage);
   } catch (err) {

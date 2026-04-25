@@ -1,39 +1,37 @@
 const express = require('express');
-const router = express.Router();
-const multer = require('multer');
-const path = require('path');
+const router  = express.Router();
+const multer  = require('multer');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const { getVoyages, getVoyage, createVoyage, updateVoyage, deleteVoyage } = require('../controllers/voyageController');
+const { uploadBuffer } = require('../lib/cloudinary');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, '../public/uploads')),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, 'voyage-' + Date.now() + ext);
-  }
-});
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Seules les images sont acceptées'));
-  }
+  },
 });
 
-// GET /api/voyages — liste avec filtres optionnels
-router.get('/', getVoyages);
+async function handleImageUpload(req, res, next) {
+  if (!req.file) return next();
+  try {
+    const result = await uploadBuffer(req.file.buffer, {
+      folder: 'agence-voyage/voyages',
+      resource_type: 'image',
+    });
+    req.cloudinaryUrl = result.secure_url;
+    next();
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur upload image', error: err.message });
+  }
+}
 
-// GET /api/voyages/:id — détail d'un voyage
+router.get('/',    getVoyages);
 router.get('/:id', getVoyage);
-
-// POST /api/voyages — créer (admin)
-router.post('/', authMiddleware, adminMiddleware, upload.single('image'), createVoyage);
-
-// PUT /api/voyages/:id — modifier (admin)
+router.post('/',   authMiddleware, adminMiddleware, upload.single('image'), handleImageUpload, createVoyage);
 router.put('/:id', authMiddleware, adminMiddleware, updateVoyage);
-
-// DELETE /api/voyages/:id — supprimer (admin)
 router.delete('/:id', authMiddleware, adminMiddleware, deleteVoyage);
 
 module.exports = router;

@@ -1,36 +1,18 @@
 const express  = require('express');
 const router   = express.Router();
 const multer   = require('multer');
-const path     = require('path');
-const fs       = require('fs');
 const Album    = require('../models/Album');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { uploadBuffer, destroy, publicIdFromUrl } = require('../lib/cloudinary');
 
-const uploadDir = path.join(__dirname, '../public/uploads/albums');
-fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename:    (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, 'album-' + Date.now() + ext);
-  },
-});
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Seules les images sont acceptées'));
   },
 });
-
-function safeUnlink(fileUrl) {
-  const safePath = path.resolve(path.join(__dirname, '../public', fileUrl));
-  const safeBase = path.resolve(uploadDir);
-  if (!safePath.startsWith(safeBase + path.sep)) return;
-  try { fs.unlinkSync(safePath); } catch (e) { if (e.code !== 'ENOENT') throw e; }
-}
 
 // GET /api/albums — public, paginated if ?page present
 router.get('/', async (req, res) => {
@@ -53,7 +35,7 @@ router.get('/', async (req, res) => {
 // POST /api/albums — create album (admin)
 router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const titre = (req.body.titre || '').trim();
+    const titre       = (req.body.titre || '').trim();
     const description = (req.body.description || '').trim();
     if (!titre) return res.status(400).json({ message: 'Le titre est requis' });
     const album = await Album.create({ titre, description });
@@ -67,17 +49,18 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
 router.post('/:id/photos', authMiddleware, adminMiddleware, upload.single('photo'), async (req, res) => {
   try {
     const album = await Album.findById(req.params.id);
-    if (!album) {
-      if (req.file) try { fs.unlinkSync(req.file.path); } catch (_) {}
-      return res.status(404).json({ message: 'Album non trouvé' });
-    }
+    if (!album) return res.status(404).json({ message: 'Album non trouvé' });
     if (!req.file) return res.status(400).json({ message: 'Aucune image fournie' });
-    const url = '/uploads/albums/' + req.file.filename;
-    album.photos.push({ url, legende: req.body.legende || '', ordre: album.photos.length });
+
+    const result = await uploadBuffer(req.file.buffer, {
+      folder: 'agence-voyage/albums',
+      resource_type: 'image',
+    });
+
+    album.photos.push({ url: result.secure_url, legende: req.body.legende || '', ordre: album.photos.length });
     await album.save();
     res.status(201).json(album);
   } catch (err) {
-    if (req.file) try { fs.unlinkSync(req.file.path); } catch (_) {}
     res.status(400).json({ message: 'Erreur upload', error: err.message });
   }
 });
@@ -89,7 +72,10 @@ router.delete('/:id/photos/:photoId', authMiddleware, adminMiddleware, async (re
     if (!album) return res.status(404).json({ message: 'Album non trouvé' });
     const photo = album.photos.id(req.params.photoId);
     if (!photo) return res.status(404).json({ message: 'Photo non trouvée' });
-    safeUnlink(photo.url);
+
+    const publicId = publicIdFromUrl(photo.url);
+    if (publicId) await destroy(publicId).catch(() => {});
+
     album.photos.pull(req.params.photoId);
     await album.save();
     res.json({ message: 'Photo supprimée' });
@@ -103,9 +89,12 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const album = await Album.findById(req.params.id);
     if (!album) return res.status(404).json({ message: 'Album non trouvé' });
-    album.photos.forEach(p => {
-      safeUnlink(p.url);
-    });
+
+    await Promise.all(album.photos.map(p => {
+      const publicId = publicIdFromUrl(p.url);
+      return publicId ? destroy(publicId).catch(() => {}) : Promise.resolve();
+    }));
+
     await album.deleteOne();
     res.json({ message: 'Album supprimé' });
   } catch (err) {
@@ -114,7 +103,6 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 router.use((err, req, res, next) => {
-  if (req.file) try { fs.unlinkSync(req.file.path); } catch (_) {}
   if (err.message === 'Seules les images sont acceptées') {
     return res.status(415).json({ message: err.message });
   }

@@ -3,40 +3,18 @@ const router   = express.Router();
 const bcrypt   = require('bcryptjs');
 const jwt      = require('jsonwebtoken');
 const multer   = require('multer');
-const path     = require('path');
-const fs       = require('fs');
 const User     = require('../models/User');
 const { authMiddleware } = require('../middleware/auth');
-
-// ── Upload photo de profil (admin) ─────────────────────────────────────────────
-
-const AVATARS_DIR = path.join(__dirname, '../public/uploads/avatars');
-
-const photoStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    try {
-      fs.mkdirSync(AVATARS_DIR, { recursive: true });
-      cb(null, AVATARS_DIR);
-    } catch (err) {
-      cb(err);
-    }
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, 'avatar-' + req.user.id + '-' + Date.now() + ext);
-  },
-});
+const { uploadBuffer, destroy, publicIdFromUrl } = require('../lib/cloudinary');
 
 const uploadPhoto = multer({
-  storage: photoStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 3 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Seules les images sont acceptées'));
   },
 });
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function publicUser(user) {
   return {
@@ -111,8 +89,8 @@ router.put('/profile', authMiddleware, async (req, res) => {
     const { nom, email, motDePasseActuel, nouveauMotDePasse, avatar, telephone } = req.body;
     const user = await User.findById(req.user.id);
 
-    if (nom)                   user.nom       = nom.trim();
-    if (avatar)                user.avatar    = avatar;
+    if (nom)                     user.nom       = nom.trim();
+    if (avatar)                  user.avatar    = avatar;
     if (telephone !== undefined) user.telephone = telephone.trim();
 
     if (email && email !== user.email) {
@@ -158,13 +136,17 @@ router.post('/profile/photo', authMiddleware, (req, res, next) => {
 
     const user = await User.findById(req.user.id);
 
-    // Supprimer l'ancienne photo si elle existe
     if (user.photoUrl) {
-      const oldPath = path.join(__dirname, '../public', user.photoUrl);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      const publicId = publicIdFromUrl(user.photoUrl);
+      if (publicId) await destroy(publicId).catch(() => {});
     }
 
-    user.photoUrl = '/uploads/avatars/' + req.file.filename;
+    const result = await uploadBuffer(req.file.buffer, {
+      folder: 'agence-voyage/avatars',
+      resource_type: 'image',
+    });
+
+    user.photoUrl = result.secure_url;
     await user.save();
 
     res.json({ message: 'Photo mise à jour', photoUrl: user.photoUrl });

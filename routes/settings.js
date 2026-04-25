@@ -3,22 +3,19 @@ const router       = express.Router();
 const multer       = require('multer');
 const path         = require('path');
 const fs           = require('fs');
+const os           = require('os');
 const SiteSetting  = require('../models/SiteSettings');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
-
-const VIDEOS_DIR = path.join(__dirname, '../public/uploads/videos');
-fs.mkdirSync(VIDEOS_DIR, { recursive: true });
-
-const videoStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, VIDEOS_DIR),
-  filename:    (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, 'hero-' + Date.now() + ext);
-  },
-});
+const { uploadFile, destroy, publicIdFromUrl } = require('../lib/cloudinary');
 
 const uploadVideo = multer({
-  storage: videoStorage,
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, os.tmpdir()),
+    filename:    (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, 'hero-video-' + Date.now() + ext);
+    },
+  }),
   limits: { fileSize: 200 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
@@ -45,18 +42,26 @@ router.post('/hero-video', authMiddleware, adminMiddleware, (req, res) => {
     try {
       const prev = await SiteSetting.findOne({ key: 'hero_video' });
       if (prev?.value) {
-        const prevPath = path.join(__dirname, '../public', prev.value);
-        if (fs.existsSync(prevPath)) fs.unlinkSync(prevPath);
+        const publicId = publicIdFromUrl(prev.value);
+        if (publicId) await destroy(publicId, { resource_type: 'video' }).catch(() => {});
       }
-      const videoUrl = '/uploads/videos/' + req.file.filename;
+
+      const result = await uploadFile(req.file.path, {
+        folder:        'agence-voyage/videos',
+        resource_type: 'video',
+      });
+
+      try { fs.unlinkSync(req.file.path); } catch (_) {}
+
       await SiteSetting.findOneAndUpdate(
         { key: 'hero_video' },
-        { value: videoUrl },
+        { value: result.secure_url },
         { upsert: true, new: true }
       );
-      res.json({ videoUrl });
-    } catch {
-      res.status(500).json({ message: 'Erreur serveur' });
+      res.json({ videoUrl: result.secure_url });
+    } catch (uploadErr) {
+      try { if (req.file) fs.unlinkSync(req.file.path); } catch (_) {}
+      res.status(500).json({ message: 'Erreur upload : ' + uploadErr.message });
     }
   });
 });
@@ -66,8 +71,8 @@ router.delete('/hero-video', authMiddleware, adminMiddleware, async (req, res) =
   try {
     const setting = await SiteSetting.findOne({ key: 'hero_video' });
     if (setting?.value) {
-      const filePath = path.join(__dirname, '../public', setting.value);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      const publicId = publicIdFromUrl(setting.value);
+      if (publicId) await destroy(publicId, { resource_type: 'video' }).catch(() => {});
       await SiteSetting.deleteOne({ key: 'hero_video' });
     }
     res.json({ message: 'Vidéo supprimée.' });
