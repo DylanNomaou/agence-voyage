@@ -6,7 +6,7 @@ const multer   = require('multer');
 const path     = require('path');
 const fs       = require('fs');
 const User     = require('../models/User');
-const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
 // ── Upload photo de profil (admin) ─────────────────────────────────────────────
 
@@ -138,9 +138,9 @@ router.put('/profile', authMiddleware, async (req, res) => {
   }
 });
 
-// ── POST /api/auth/profile/photo — admin uniquement ───────────────────────────
+// ── POST /api/auth/profile/photo ──────────────────────────────────────────────
 
-router.post('/profile/photo', authMiddleware, adminMiddleware, (req, res, next) => {
+router.post('/profile/photo', authMiddleware, (req, res, next) => {
   uploadPhoto.single('photo')(req, res, err => {
     if (err) {
       const msg = err.code === 'LIMIT_FILE_SIZE'
