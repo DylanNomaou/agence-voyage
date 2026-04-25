@@ -513,8 +513,20 @@ aside {
     width: auto !important;
 }
 
+.filter-prix-range {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-prix-sep {
+    color: #2a3a5a;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
 .filter-input-prix {
-    width: 170px !important;
+    width: 130px !important;
 }
 
 .filter-input-dest {
@@ -529,6 +541,22 @@ aside {
     color: #94a3b8;
     cursor: pointer;
     user-select: none;
+}
+
+.btn-filter-reset {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    height: auto;
+    color: #64748b;
+    border-color: #1a3a5c;
+}
+
+.btn-filter-reset:hover {
+    color: #38bdf8;
+    border-color: #38bdf8;
 }
 
 .filter-checkbox {
@@ -562,8 +590,8 @@ textarea:focus {
 
 input::placeholder,
 textarea::placeholder {
-    color: #1e3a52;
-    opacity: 0.5;
+    color: #2e4a62 !important;
+    opacity: 1;
 }
 
 select option {
@@ -945,6 +973,18 @@ tr:hover td {
     background: linear-gradient(135deg, #0a1e33, #060d18);
     overflow: hidden;
     position: relative;
+}
+
+.voyage-img-clickable {
+    cursor: pointer;
+}
+
+.voyage-img-clickable img {
+    transition: transform 0.35s ease;
+}
+
+.voyage-img-clickable:hover img {
+    transform: scale(1.06);
 }
 
 .voyage-img-wrap img {
@@ -1899,9 +1939,90 @@ input.valid {
   text-align: center;
 }
 
+/* Vidéo héro */
+.hero-video-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  pointer-events: none;
+}
+
+.hero-video-bg.has-video {
+  opacity: 1;
+}
+
+.hero-video-bg video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.hero-video-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(6, 13, 24, 0.62) 0%,
+    rgba(6, 13, 24, 0.78) 100%
+  );
+}
+
+/* Tout le contenu de globe-page au-dessus de la vidéo */
+.globe-page > *:not(.hero-video-bg) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Onglet paramètres — aperçu vidéo */
+.settings-video-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.settings-video-preview {
+  width: 100%;
+  max-width: 580px;
+  border-radius: 12px;
+  border: 1px solid #1a3a5c;
+  background: #040c16;
+  display: block;
+}
+
+/* Barre de progression upload */
+.hero-upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  height: 26px;
+}
+
+.hero-progress-bar-wrap {
+  flex: 1;
+  height: 6px;
+  background: #0a1e33;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hero-progress-bar {
+  height: 6px;
+  background: linear-gradient(90deg, #0284c7, #38bdf8);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.2s;
+  flex: 1;
+}
+
 /* ── Logo animé ── */
 .welcome-logo-anim {
-  width: min(700px, 88vw);
+  width: min(920px, 94vw);
   height: auto;
   display: block;
   animation: logo-breathe 3.6s ease-in-out infinite;
@@ -2067,7 +2188,7 @@ input.valid {
 
   /* Welcome page compact */
   .globe-page { min-height: auto; gap: 18px; padding: 28px 16px; }
-  .welcome-logo-anim { width: min(560px, 86vw); }
+  .welcome-logo-anim { width: min(720px, 90vw); }
   .globe-title { font-size: 1.3rem; }
 
   /* Form grids collapse to 1 col */
@@ -2083,7 +2204,9 @@ input.valid {
   .tab-header { flex-direction: column; align-items: flex-start; gap: 10px; }
 
   /* Filter bar */
-  .filter-input-prix, .filter-input-dest { width: 100% !important; }
+  .filter-prix-range { width: 100%; }
+  .filter-input-prix { width: 100% !important; flex: 1; }
+  .filter-input-dest { width: 100% !important; }
 
   /* Voyage grid */
   .voyages-grid { grid-template-columns: 1fr; }
@@ -2094,7 +2217,7 @@ input.valid {
 
 @media (max-width: 480px) {
   main { padding: 12px; }
-  .welcome-logo-anim { width: min(420px, 84vw); }
+  .welcome-logo-anim { width: min(540px, 88vw); }
   .card-panel-lg { padding: 20px 16px; }
   .detail-stats { grid-template-columns: 1fr 1fr; }
   .detail-img-wrap { height: 220px; }
@@ -2255,4 +2378,175 @@ input.valid {
   border-radius: 6px;
   font-size: 0.75rem;
   cursor: pointer;
+}
+
+/* ── Reservation background image ───────────────────────────────────────── */
+.res-voyage-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+.res-voyage-bg.has-image {
+  opacity: 0.14;
+}
+
+/* ── Souvenirs Gallery Tab ───────────────────────────────────────────────── */
+.sdash-hero {
+  padding: 56px 40px 36px;
+  text-align: center;
+}
+
+.sdash-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #38bdf8;
+  margin-bottom: 14px;
+}
+
+.sdash-title {
+  font-size: clamp(3.5rem, 9vw, 8rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #7dd3fc 30%, #38bdf8 60%, #0284c7 85%, #7dd3fc 100%);
+  background-size: 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: sdash-shimmer 6s linear infinite;
+}
+
+@keyframes sdash-shimmer {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+
+.sdash-sub {
+  font-size: 1rem;
+  color: #64748b;
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.sdash-gallery-wrap {
+  padding: 0 32px 48px;
+}
+
+.sdash-track-outer {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #0a1e33;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+}
+
+.sdash-track {
+  display: flex;
+  transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.sdash-slide {
+  flex: 0 0 100%;
+  position: relative;
+}
+
+.sdash-slide img {
+  width: 100%;
+  height: 80vh;
+  min-height: 440px;
+  max-height: 900px;
+  object-fit: cover;
+  display: block;
+}
+
+.sdash-caption {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 40px 32px 28px;
+  background: linear-gradient(transparent, rgba(6,13,24,0.92));
+  color: #e2e8f0;
+  font-size: 1.05rem;
+  font-weight: 500;
+  min-height: 90px;
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.sdash-track-outer:hover .sdash-caption { opacity: 1; }
+
+.sdash-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: rgba(6, 13, 24, 0.65);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  z-index: 3;
+  backdrop-filter: blur(8px);
+}
+.sdash-arrow:hover {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.65);
+  transform: translateY(-50%) scale(1.08);
+}
+.sdash-prev { left: 20px; }
+.sdash-next { right: 20px; }
+
+.sdash-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.sdash-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #1a3a5c;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  transition: background 0.2s, transform 0.2s, width 0.3s, border-radius 0.3s;
+}
+.sdash-dot.active {
+  background: #38bdf8;
+  transform: scale(1.2);
+  width: 26px;
+  border-radius: 4px;
+}
+
+.sdash-counter {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: #2a3a5a;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 768px) {
+  .sdash-hero { padding: 36px 20px 24px; }
+  .sdash-gallery-wrap { padding: 0 16px 32px; }
+  .sdash-slide img { height: 55vw; min-height: 200px; }
+  .sdash-arrow { width: 40px; height: 40px; }
+  .sdash-prev { left: 10px; }
+  .sdash-next { right: 10px; }
 }

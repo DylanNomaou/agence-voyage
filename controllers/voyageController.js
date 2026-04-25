@@ -3,12 +3,20 @@ const Voyage = require('../models/Voyage');
 // GET /api/voyages — liste avec filtres optionnels
 const getVoyages = async (req, res) => {
   try {
-    const { categorie, prixMax, destination, vedette, page, limit } = req.query;
+    const { categorie, prixMin, prixMax, q, vedette, page, limit } = req.query;
     const filtre = {};
 
-    if (categorie)  filtre.categorie   = categorie;
-    if (prixMax)    filtre.prix        = { $lte: Number(prixMax) };
-    if (destination) filtre.destination = new RegExp(destination, 'i');
+    if (categorie)  filtre.categorie = categorie;
+    if (prixMin || prixMax) {
+      filtre.prix = {};
+      if (prixMin) filtre.prix.$gte = Number(prixMin);
+      if (prixMax) filtre.prix.$lte = Number(prixMax);
+    }
+    if (q && q.trim()) {
+      const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(escaped, 'i');
+      filtre.$or = [{ titre: re }, { destination: re }];
+    }
     if (vedette === 'true') filtre.vedette = true;
 
     const sortMap = {

@@ -1097,6 +1097,10 @@ footer {
     border-color: rgba(56, 189, 248, 0.4);
 }
 
+.fc-input::placeholder {
+    color: #2e4a62;
+}
+
 .fc-hint {
     font-size: 0.72rem;
     margin-top: 4px;
@@ -1204,8 +1208,8 @@ footer {
 }
 
 .dest-info-panel {
-  flex: 0 0 38%;
-  max-width: 380px;
+  flex: 0 0 46%;
+  max-width: 460px;
   transition: opacity 0.3s;
 }
 .dest-info-panel.fading { opacity: 0; }
@@ -1256,10 +1260,11 @@ footer {
 
 .dest-meta span {
   font-size: 0.78rem;
-  color: #64748b;
-  background: rgba(26,58,92,0.5);
-  border: 1px solid #1a3a5c;
-  padding: 4px 10px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  border: none;
+  padding: 5px 12px;
   border-radius: 6px;
 }
 
@@ -1280,11 +1285,9 @@ footer {
 
 /* Fan de cartes */
 .dest-stack-wrap {
-  flex: 0 0 260px;
-  max-width: 260px;
+  flex: 1;
   position: relative;
   overflow: visible;
-  padding-right: 20px;
 }
 
 .dest-stack {
@@ -1295,12 +1298,15 @@ footer {
 
 .dest-card {
   position: absolute;
-  inset: 0;
+  width: 380px;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 190px);
+  right: auto;
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid rgba(26,58,92,0.85);
   transition: transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s, box-shadow 0.5s;
-  /* Pivot near bottom-center: cards fan out like a hand of cards */
   transform-origin: 50% 90%;
 }
 
@@ -1380,7 +1386,9 @@ footer {
   .dest-info-panel { max-width: 100%; flex: none; }
   .dest-stack-wrap { padding-right: 0; }
   .dest-stack { height: 380px; }
-  /* On mobile fan: reduce rotation angles so cards don't go off-screen */
+  /* On mobile: fill the full width, no centering offset needed */
+  .dest-card { width: 100%; left: 0; right: 0; }
+  /* Reduce rotation angles so cards don't go off-screen */
   .dest-card[data-pos="1"] { transform: rotate(4deg);  }
   .dest-card[data-pos="2"] { transform: rotate(8deg);  }
   .dest-card[data-pos="3"] { transform: rotate(11deg); }
@@ -1394,7 +1402,7 @@ footer {
   position: relative;
   overflow: hidden;
   border-radius: 16px;
-  max-height: 480px;
+  max-height: 640px;
 }
 
 .souvenirs-track {
@@ -1410,7 +1418,7 @@ footer {
 
 .souvenirs-slide img {
   width: 100%;
-  height: 440px;
+  height: 620px;
   object-fit: cover;
   display: block;
 }
@@ -1455,8 +1463,8 @@ footer {
 .souvenirs-dot.active { background: #38bdf8; transform: scale(1.4); }
 
 @media (max-width: 768px) {
-  .souvenirs-slide img { height: 260px; }
-  .souvenirs-carousel-wrap { max-height: 280px; }
+  .souvenirs-slide img { height: 320px; }
+  .souvenirs-carousel-wrap { max-height: 340px; }
 }
 
 /* ── Mobile Nav ─────────────────────────────────────────────────────────── */

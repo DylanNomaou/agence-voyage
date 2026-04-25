@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Créer SonBonheur — Tableau de bord</title>
+  <link rel="icon" type="image/png" href="/img/logoRond.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -77,7 +78,7 @@
           <div class="header-username" id="header-username"></div>
           <div class="header-role" id="header-role"></div>
         </div>
-        <button class="btn-logout" onclick="logout()">Deconnexion</button>
+        <button class="btn-logout" onclick="logout()">Déconnexion</button>
       </div>
     </div>
   </header>
@@ -92,7 +93,7 @@
         <p class="sidebar-section-label">Compte</p>
         <!-- Non connecté -->
         <div id="sidebar-logged-out">
-          <div class="sidebar-offline">Non connecte</div>
+          <div class="sidebar-offline">Non connecté</div>
           <button class="btn-sidebar-login" onclick="showTab('login',null)">Se connecter</button>
         </div>
         <!-- Connecté -->
@@ -105,7 +106,7 @@
             </div>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3a5a" stroke-width="2" class="sidebar-edit-icon"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </div>
-          <button class="btn-sidebar-logout" onclick="logout()">Deconnexion</button>
+          <button class="btn-sidebar-logout" onclick="logout()">Déconnexion</button>
         </div>
       </div>
 
@@ -149,14 +150,20 @@
 
       <div id="nav-client-section" style="display:none">
         <div class="nav-separator"></div>
-        <p class="nav-section-label">Reservations</p>
+        <p class="nav-section-label">Réservations</p>
         <button class="nav-btn" onclick="showTab('reservations',this)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>
-          Mes reservations
+          Mes réservations
         </button>
         <button class="nav-btn" onclick="showTab('reserver',this)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          Nouvelle reservation
+          Nouvelle réservation
+        </button>
+        <div class="nav-separator"></div>
+        <p class="nav-section-label">Galerie</p>
+        <button class="nav-btn" id="nav-btn-souvenirs" onclick="showTab('souvenirs',this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          Souvenirs
         </button>
         <div class="nav-separator"></div>
         <p class="nav-section-label">Contact</p>
@@ -175,10 +182,19 @@
         </button>
       </div>
 
+      <div id="nav-admin-settings" style="display:none">
+        <div class="nav-separator"></div>
+        <p class="nav-section-label">Configuration</p>
+        <button class="nav-btn" onclick="showTab('settings',this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Paramètres
+        </button>
+      </div>
+
       <div id="nav-admin-messages" style="display:none">
         <button class="nav-btn" onclick="showTab('messages',this)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          Messages recus
+          Messages reçus
         </button>
       </div>
     </aside>
@@ -204,6 +220,12 @@
       <!-- ACCUEIL -->
       <div id="tab-accueil" class="tab-content active">
         <div class="globe-page">
+
+          <!-- Vidéo de fond -->
+          <div class="hero-video-bg" id="hero-video-bg">
+            <video id="hero-video" autoplay loop muted playsinline></video>
+            <div class="hero-video-overlay"></div>
+          </div>
 
           <!-- Logo animé centré -->
           <img src="/img/logoCreerBonheurLong.png" class="welcome-logo-anim" alt="Créer SonBonheur" />
@@ -238,7 +260,7 @@
         </div>
         <div class="filters-bar">
           <select id="filter-categorie" class="filter-input" onchange="loadVoyages(1)">
-            <option value="">Toutes categories</option>
+            <option value="">Toutes catégories</option>
             <option value="plage">Plage</option>
             <option value="montagne">Montagne</option>
             <option value="ville">Ville</option>
@@ -246,8 +268,16 @@
             <option value="culture">Culture</option>
             <option value="autre">Autre</option>
           </select>
-          <input type="number" id="filter-prix" class="filter-input filter-input-prix" placeholder="Prix max (CAD)" oninput="loadVoyages(1)" />
-          <input type="text" id="filter-dest" class="filter-input filter-input-dest" placeholder="Destination..." oninput="loadVoyages(1)" />
+          <div class="filter-prix-range">
+            <input type="number" id="filter-prix-min" class="filter-input filter-input-prix" placeholder="Prix min" oninput="debouncedLoadVoyages()" min="0" />
+            <span class="filter-prix-sep">—</span>
+            <input type="number" id="filter-prix" class="filter-input filter-input-prix" placeholder="Prix max" oninput="debouncedLoadVoyages()" min="0" />
+          </div>
+          <input type="text" id="filter-dest" class="filter-input filter-input-dest" placeholder="Titre ou destination..." oninput="debouncedLoadVoyages()" />
+          <button onclick="resetFilters()" class="btn-ghost btn-filter-reset">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+            Réinitialiser
+          </button>
           <label class="filter-checkbox-label">
             <input type="checkbox" id="filter-vedette" class="filter-checkbox" onchange="loadVoyages(1)" />
             Vedettes uniquement
@@ -268,7 +298,7 @@
           </button>
         </div>
         <div id="voyage-detail-content">
-          <div class="empty-state">Selectionnez un voyage depuis le catalogue.</div>
+          <div class="empty-state">Sélectionnez un voyage depuis le catalogue.</div>
         </div>
       </div>
 
@@ -278,7 +308,7 @@
           <div class="form-container-lg">
             <div class="form-header">
               <h2 class="form-title">Ajouter un voyage</h2>
-              <p class="form-subtitle">Acces administrateur requis</p>
+              <p class="form-subtitle">Accès administrateur requis</p>
             </div>
             <div class="card-panel card-panel-lg">
               <div class="hidden alert-cyan alert-mb" id="create-voyage-alert">
@@ -309,7 +339,7 @@
                     <div class="field-hint" id="hint-v-prix"></div>
                   </div>
                   <div>
-                    <label class="form-label">Duree (jours)</label>
+                    <label class="form-label">Durée (jours)</label>
                     <input type="number" id="v-duree" class="input-md" oninput="validateField('v-duree')" />
                     <div class="field-hint" id="hint-v-duree"></div>
                   </div>
@@ -321,14 +351,14 @@
                     <div class="field-hint" id="hint-v-places"></div>
                   </div>
                   <div>
-                    <label class="form-label">Date de depart</label>
+                    <label class="form-label">Date de départ</label>
                     <input type="date" id="v-date" class="input-md" oninput="validateField('v-date')" />
                     <div class="field-hint" id="hint-v-date"></div>
                   </div>
                 </div>
                 <div class="form-grid-2">
                   <div>
-                    <label class="form-label">Categorie</label>
+                    <label class="form-label">Catégorie</label>
                     <select id="v-categorie" class="input-md">
                       <option value="plage">Plage</option>
                       <option value="montagne">Montagne</option>
@@ -386,7 +416,7 @@
                 </div>
                 <div class="form-field">
                   <label class="form-label">Mot de passe</label>
-                  <input type="password" id="reg-pwd" class="input-lg" placeholder="Au moins 6 caracteres" oninput="validateField('reg-pwd');validateField('reg-pwd-confirm')" />
+                  <input type="password" id="reg-pwd" class="input-lg" placeholder="Au moins 6 caractères" oninput="validateField('reg-pwd');validateField('reg-pwd-confirm')" />
                   <div id="pwd-strength" class="pwd-strength-wrap">
                     <div class="strength-bars">
                       <div class="strength-bar" id="sb-1"></div>
@@ -407,7 +437,7 @@
               </form>
               <div id="register-response" class="response-mt"></div>
               <p class="auth-footer">
-                Deja un compte ?
+                Déjà un compte ?
                 <button class="btn-link" onclick="showTab('login',null)">Se connecter</button>
               </p>
             </div>
@@ -421,7 +451,7 @@
           <div class="form-container">
             <div class="form-header">
               <h2 class="form-title">Connexion</h2>
-              <p class="form-subtitle">Acceder a votre espace personnel</p>
+              <p class="form-subtitle">Accéder à votre espace personnel</p>
             </div>
             <div class="card-panel card-panel-lg">
               <form id="form-login" onsubmit="submitLogin(event)" novalidate autocomplete="off">
@@ -451,8 +481,8 @@
       <div id="tab-reservations" class="tab-content">
         <div class="tab-header">
           <div>
-            <h2 class="tab-title">Reservations</h2>
-            <p class="tab-subtitle">Gestion des reservations</p>
+            <h2 class="tab-title">Réservations</h2>
+            <p class="tab-subtitle">Gestion des réservations</p>
           </div>
           <button onclick="loadReservations()" class="btn-cyan">Actualiser</button>
         </div>
@@ -465,12 +495,13 @@
       </div>
 
       <!-- NOUVELLE RESERVATION -->
-      <div id="tab-reserver" class="tab-content">
-        <div class="page-center">
+      <div id="tab-reserver" class="tab-content" style="position:relative;overflow:hidden">
+        <div id="res-voyage-bg" class="res-voyage-bg"></div>
+        <div class="page-center" style="position:relative;z-index:1">
           <div class="form-container-sm">
             <div class="form-header">
-              <h2 class="form-title">Nouvelle reservation</h2>
-              <p class="form-subtitle">Reserver un voyage</p>
+              <h2 class="form-title">Nouvelle réservation</h2>
+              <p class="form-subtitle">Réserver un voyage</p>
             </div>
             <div class="card-panel card-panel-lg">
               <form onsubmit="makeReservation(event)" novalidate>
@@ -486,7 +517,7 @@
                   <div class="field-hint" id="hint-res-nb"></div>
                 </div>
                 <div id="res-prix-preview" class="res-price-preview"></div>
-                <button type="submit" class="btn-cyan btn-full-sm">Confirmer la reservation</button>
+                <button type="submit" class="btn-cyan btn-full-sm">Confirmer la réservation</button>
               </form>
               <div id="reserver-response"></div>
             </div>
@@ -500,7 +531,7 @@
           <div class="form-container">
             <div class="form-header">
               <h2 class="form-title">Envoyer un message</h2>
-              <p class="form-subtitle">Notre equipe vous repondra rapidement</p>
+              <p class="form-subtitle">Notre équipe vous répondra rapidement</p>
             </div>
             <div class="card-panel card-panel-lg">
               <form onsubmit="sendContact(event)" novalidate>
@@ -546,7 +577,7 @@
               <!-- Photo de profil (admin uniquement, affiché par JS) -->
               <div id="profile-photo-section" class="profile-photo-section">
                 <div class="form-section-divider">
-                  <p class="form-section-title">Photo de profil <span>(administrateur)</span></p>
+                  <p class="form-section-title">Photo de profil</p>
                   <div class="profile-photo-wrap">
                     <div id="profile-photo-picker" class="profile-photo-picker" onclick="document.getElementById('profile-photo-input').click()">
                       <img id="profile-photo-img" class="profile-photo-img" src="" alt="" />
@@ -606,7 +637,7 @@
                     <label class="form-label">Nouveau mot de passe</label>
                     <input type="password" id="profile-pwd-new" class="input-lg" oninput="validateField('profile-pwd-new');validateField('profile-pwd-confirm')" />
                     <div class="field-hint" id="hint-profile-pwd-new"></div>
-                    <p class="form-hint">Minimum 8 caracteres avec au moins une majuscule</p>
+                    <p class="form-hint">Minimum 8 caractères avec au moins une majuscule</p>
                   </div>
                   <div class="form-field-lg">
                     <label class="form-label">Confirmer le nouveau mot de passe</label>
@@ -628,7 +659,7 @@
         <div class="tab-header">
           <div>
             <h2 class="tab-title">Messages de contact</h2>
-            <p class="tab-subtitle">Acces administrateur requis</p>
+            <p class="tab-subtitle">Accès administrateur requis</p>
           </div>
           <button onclick="loadMessages()" class="btn-cyan">Actualiser</button>
         </div>
@@ -689,6 +720,82 @@
           <div class="empty-state">Chargement...</div>
         </div>
         <div id="albums-pagination"></div>
+      </div>
+
+      <!-- SOUVENIRS GALERIE -->
+      <div id="tab-souvenirs" class="tab-content">
+        <div class="sdash-hero">
+          <div class="sdash-eyebrow">Galerie de voyages</div>
+          <h1 class="sdash-title">Souvenirs</h1>
+          <p class="sdash-sub">Des instants capturés au fil de nos voyages extraordinaires.</p>
+        </div>
+        <div id="sdash-gallery-wrap" class="sdash-gallery-wrap">
+          <div class="sdash-track-outer">
+            <div class="sdash-track" id="sdash-track"></div>
+            <button class="sdash-arrow sdash-prev" onclick="souvenirsDashPrev()" aria-label="Photo précédente">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button class="sdash-arrow sdash-next" onclick="souvenirsDashNext()" aria-label="Photo suivante">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+            </button>
+            <div id="sdash-caption" class="sdash-caption"></div>
+          </div>
+          <div class="sdash-dots" id="sdash-dots"></div>
+          <div id="sdash-counter" class="sdash-counter"></div>
+        </div>
+        <div id="sdash-empty" class="empty-state" style="display:none">Aucune photo disponible pour le moment.</div>
+      </div>
+
+      <!-- PARAMÈTRES -->
+      <div id="tab-settings" class="tab-content">
+        <div class="tab-header">
+          <div>
+            <h2 class="tab-title">Paramètres du site</h2>
+            <p class="tab-subtitle">Configuration de la page d'accueil</p>
+          </div>
+        </div>
+        <div class="page-center">
+          <div class="form-container-lg">
+            <div class="card-panel card-panel-lg">
+
+              <div class="form-section-divider">
+                <p class="form-section-title">Vidéo d'accueil</p>
+                <p class="form-hint" style="margin-bottom:16px">La vidéo sera affichée en arrière-plan de la page d'accueil du tableau de bord. Formats acceptés : MP4, WebM. Taille max : 200 Mo.</p>
+
+                <!-- Aperçu vidéo actuelle -->
+                <div id="current-hero-video" style="margin-bottom:20px"></div>
+
+                <!-- Upload nouvelle vidéo -->
+                <div class="form-field-sm">
+                  <label class="form-label">Mettre en ligne une nouvelle vidéo</label>
+                  <div id="video-picker" class="image-picker" style="height:80px" onclick="document.getElementById('hero-video-file').click()">
+                    <div id="video-picker-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:6px">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4a5578" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                      <p class="picker-hint">Cliquer pour choisir une vidéo</p>
+                      <p class="picker-format">MP4, WebM, OGG — max 200 Mo</p>
+                    </div>
+                    <p id="video-file-name" style="display:none;font-size:0.82rem;color:#38bdf8"></p>
+                  </div>
+                  <input type="file" id="hero-video-file" class="file-input-hidden" accept="video/mp4,video/webm,video/ogg" onchange="onHeroVideoFileChange(this)" />
+                </div>
+
+                <div id="hero-video-progress" class="hero-upload-progress" style="display:none">
+                  <div class="hero-progress-bar-wrap" style="flex:1">
+                    <div class="hero-progress-bar" id="hero-progress-bar"></div>
+                  </div>
+                  <span id="hero-progress-label" style="font-size:0.8rem;color:#64748b;min-width:36px">0%</span>
+                </div>
+
+                <button id="btn-upload-hero-video" onclick="uploadHeroVideo()" class="btn-violet" style="margin-top:14px" disabled>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                  Mettre en ligne
+                </button>
+                <div id="hero-video-upload-response" style="margin-top:12px"></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- MODAL CONTACT CLIENT -->

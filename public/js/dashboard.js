@@ -102,14 +102,15 @@ const CAT = {
   autre:    { bg: '#1a2a3a', border: '#2a4a6a', text: '#94a3b8' },
 };
 
+const STATUT_LABELS = { en_attente: 'En attente', confirmee: 'Confirmée', annulee: 'Annulée' };
+
 // ── Init ───────────────────────────────────────────────────────────────────────
 window.onload = async () => {
   checkApiStatus();
   updateAuthUI();
+  loadHeroVideo();
   await fetchRates();
 
-  // Navigation par hash URL (ex: /dashboard.html#login ou #voyages)
-  // Doit s'exécuter après updateAuthUI pour ne pas être écrasé
   const hash = window.location.hash.replace('#', '');
   if (hash && document.getElementById('tab-' + hash)) {
     showTab(hash, null);
@@ -126,6 +127,150 @@ async function checkApiStatus() {
   } catch {
     dot.classList.add('offline');
     text.textContent = 'Hors ligne';
+  }
+}
+
+// ── Vidéo hero ────────────────────────────────────────────────────────────────
+async function loadHeroVideo() {
+  try {
+    const r = await fetch(API + '/settings/hero-video');
+    const d = await r.json();
+    const vid = document.getElementById('hero-video');
+    const bg  = document.getElementById('hero-video-bg');
+    if (d.videoUrl && vid) {
+      vid.src = d.videoUrl;
+      vid.load();
+      if (bg) bg.classList.add('has-video');
+    } else {
+      if (bg) bg.classList.remove('has-video');
+    }
+  } catch {}
+}
+
+function onHeroVideoFileChange(input) {
+  const file = input.files[0];
+  const namEl = document.getElementById('video-file-name');
+  const ph    = document.getElementById('video-picker-placeholder');
+  const btn   = document.getElementById('btn-upload-hero-video');
+  if (file) {
+    ph.style.display   = 'none';
+    namEl.style.display = 'block';
+    namEl.textContent   = file.name + ' (' + (file.size / 1024 / 1024).toFixed(1) + ' Mo)';
+    btn.disabled = false;
+  } else {
+    ph.style.display   = 'flex';
+    namEl.style.display = 'none';
+    btn.disabled = true;
+  }
+}
+
+async function uploadHeroVideo() {
+  const fileInput = document.getElementById('hero-video-file');
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  const el       = document.getElementById('hero-video-upload-response');
+  const btn      = document.getElementById('btn-upload-hero-video');
+  const progress = document.getElementById('hero-video-progress');
+  const bar      = document.getElementById('hero-progress-bar');
+  const label    = document.getElementById('hero-progress-label');
+
+  btn.disabled = true;
+  el.innerHTML = '<div class="form-hint" style="margin-top:0">Envoi en cours…</div>';
+  progress.style.display = 'flex';
+  bar.style.width = '0%';
+  label.textContent = '0%';
+
+  const fd = new FormData();
+  fd.append('video', file);
+
+  return new Promise(resolve => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', API + '/settings/hero-video');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        const pct = Math.round((e.loaded / e.total) * 100);
+        bar.style.width    = pct + '%';
+        label.textContent  = pct + '%';
+      }
+    };
+
+    xhr.onload = () => {
+      progress.style.display = 'none';
+      btn.disabled = false;
+      try {
+        const d = JSON.parse(xhr.responseText);
+        if (xhr.status === 200) {
+          el.innerHTML = '<div class="alert-cyan" style="margin-top:0">Vidéo mise en ligne avec succès.</div>';
+          fileInput.value = '';
+          onHeroVideoFileChange(fileInput);
+          loadHeroVideo();
+          loadSettingsTab();
+        } else {
+          el.innerHTML = '<div class="alert-error">' + (d.message || 'Erreur upload.') + '</div>';
+        }
+      } catch {
+        el.innerHTML = '<div class="alert-error">Erreur inattendue (statut ' + xhr.status + ').</div>';
+      }
+      resolve();
+    };
+
+    xhr.onerror = () => {
+      progress.style.display = 'none';
+      btn.disabled = false;
+      el.innerHTML = '<div class="alert-error">Erreur réseau.</div>';
+      resolve();
+    };
+
+    xhr.send(fd);
+  });
+}
+
+async function removeHeroVideo() {
+  const ok = await showConfirm({
+    title:   'Supprimer la vidéo',
+    msg:     "La vidéo d'accueil sera définitivement supprimée.",
+    type:    'danger',
+    okLabel: 'Supprimer',
+  });
+  if (!ok) return;
+  try {
+    const r = await fetch(API + '/settings/hero-video', { method: 'DELETE', headers: authHeader() });
+    if (r.ok) {
+      const vid = document.getElementById('hero-video');
+      const bg  = document.getElementById('hero-video-bg');
+      if (vid) { vid.src = ''; vid.load(); }
+      if (bg)  bg.classList.remove('has-video');
+      loadSettingsTab();
+    }
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message);
+  }
+}
+
+async function loadSettingsTab() {
+  const container = document.getElementById('current-hero-video');
+  if (!container) return;
+  try {
+    const r = await fetch(API + '/settings/hero-video');
+    const d = await r.json();
+    if (d.videoUrl) {
+      container.innerHTML = `
+        <div class="settings-video-wrap">
+          <p class="form-label" style="margin-bottom:8px">Vidéo actuelle</p>
+          <video src="${esc(d.videoUrl)}" controls muted class="settings-video-preview"></video>
+          <button onclick="removeHeroVideo()" class="btn-danger" style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;font-size:0.82rem">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            Supprimer la vidéo
+          </button>
+        </div>`;
+    } else {
+      container.innerHTML = '<p class="form-hint">Aucune vidéo configurée pour le moment.</p>';
+    }
+  } catch {
+    container.innerHTML = '';
   }
 }
 
@@ -146,6 +291,8 @@ function updateAuthUI() {
   if (navAlbums) navAlbums.style.display = isAdmin ? 'block' : 'none';
   const navAdminRes = document.getElementById('nav-admin-reservations');
   if (navAdminRes) navAdminRes.style.display = isAdmin ? 'block' : 'none';
+  const navSettings = document.getElementById('nav-admin-settings');
+  if (navSettings) navSettings.style.display = isAdmin ? 'block' : 'none';
 
   if (isLoggedIn) {
     const initial = currentUser.nom.charAt(0).toUpperCase();
@@ -160,7 +307,7 @@ function updateAuthUI() {
   const activeTab = document.querySelector('.tab-content.active');
   if (activeTab) {
     const id        = activeTab.id;
-    const gated     = ['tab-reservations', 'tab-reserver', 'tab-contact', 'tab-messages', 'tab-voyage-create'];
+    const gated     = ['tab-reservations', 'tab-reserver', 'tab-contact', 'tab-messages', 'tab-voyage-create', 'tab-souvenirs'];
     const adminOnly = ['tab-voyage-create', 'tab-messages', 'tab-admin-reservations', 'tab-albums'];
     if (!isLoggedIn && gated.includes(id)) {
       showTab('voyages', document.querySelector('.nav-btn'));
@@ -181,6 +328,8 @@ function showTab(name, btn) {
   if (name === 'profile')      loadProfileTab();
   if (name === 'voyages') loadVoyages();
   if (name === 'albums' && typeof loadAlbums === 'function') loadAlbums();
+  if (name === 'souvenirs') loadSouvenirsDash();
+  if (name === 'settings') loadSettingsTab();
   if (name === 'admin-reservations') loadAdminReservations();
 }
 
@@ -198,7 +347,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const RULES = {
   'reg-nom':   v => !v.length ? { s: 'error', m: 'Le nom est requis' }
-                  : v.trim().length < 2 ? { s: 'error', m: 'Au moins 2 caracteres (' + v.trim().length + '/2)' }
+                  : v.trim().length < 2 ? { s: 'error', m: 'Au moins 2 caractères (' + v.trim().length + '/2)' }
                   : { s: 'ok', m: 'Nom valide' },
 
   'reg-email': v => !v.length ? { s: 'error', m: "L'email est requis" }
@@ -224,26 +373,26 @@ const RULES = {
                     : { s: 'ok', m: '' },
 
   'login-pwd': v => !v.length ? { s: 'error', m: 'Le mot de passe est requis' }
-                  : v.length < 6 ? { s: 'error', m: 'Au moins 6 caracteres' }
+                  : v.length < 6 ? { s: 'error', m: 'Au moins 6 caractères' }
                   : { s: 'ok', m: '' },
 
   'v-titre':  v => !v.length ? { s: 'error', m: 'Le titre est requis' }
-                  : v.trim().length < 3 ? { s: 'error', m: 'Minimum 3 caracteres (' + v.trim().length + '/3)' }
+                  : v.trim().length < 3 ? { s: 'error', m: 'Minimum 3 caractères (' + v.trim().length + '/3)' }
                   : { s: 'ok', m: '' },
 
   'v-dest':   v => !v.length ? { s: 'error', m: 'La destination est requise' }
-                  : v.trim().length < 2 ? { s: 'error', m: 'Minimum 2 caracteres' }
+                  : v.trim().length < 2 ? { s: 'error', m: 'Minimum 2 caractères' }
                   : { s: 'ok', m: '' },
 
   'v-desc':   v => !v.length ? { s: 'error', m: 'La description est requise' }
-                  : v.trim().length < 20 ? { s: 'error', m: 'Minimum 20 caracteres (' + v.trim().length + '/20)' }
+                  : v.trim().length < 20 ? { s: 'error', m: 'Minimum 20 caractères (' + v.trim().length + '/20)' }
                   : { s: 'ok', m: '' },
 
   'v-prix':   v => !v.length ? { s: 'error', m: 'Le prix est requis' }
                   : isNaN(v) || Number(v) < 1 ? { s: 'error', m: 'Montant invalide (minimum 1)' }
                   : { s: 'ok', m: '' },
 
-  'v-duree':  v => !v.length ? { s: 'error', m: 'La duree est requise' }
+  'v-duree':  v => !v.length ? { s: 'error', m: 'La durée est requise' }
                   : isNaN(v) || Number(v) < 1 || !Number.isInteger(Number(v)) ? { s: 'error', m: 'Nombre de jours invalide' }
                   : { s: 'ok', m: '' },
 
@@ -251,8 +400,8 @@ const RULES = {
                   : isNaN(v) || Number(v) < 1 ? { s: 'error', m: 'Minimum 1 place disponible' }
                   : { s: 'ok', m: '' },
 
-  'v-date':   v => !v ? { s: 'error', m: 'La date de depart est requise' }
-                  : new Date(v) < new Date() ? { s: 'error', m: 'La date doit etre dans le futur' }
+  'v-date':   v => !v ? { s: 'error', m: 'La date de départ est requise' }
+                  : new Date(v) < new Date() ? { s: 'error', m: 'La date doit être dans le futur' }
                   : { s: 'ok', m: '' },
 
   'res-nb':   v => !v.length ? { s: 'error', m: 'Nombre de personnes requis' }
@@ -260,7 +409,7 @@ const RULES = {
                   : { s: 'ok', m: '' },
 
   'c-nom':    v => !v.length ? { s: 'error', m: 'Le nom est requis' }
-                  : v.trim().length < 2 ? { s: 'error', m: 'Minimum 2 caracteres' }
+                  : v.trim().length < 2 ? { s: 'error', m: 'Minimum 2 caractères' }
                   : { s: 'ok', m: '' },
 
   'c-email':  v => !v.length ? { s: 'error', m: "L'email est requis" }
@@ -268,15 +417,15 @@ const RULES = {
                   : { s: 'ok', m: '' },
 
   'c-sujet':  v => !v.length ? { s: 'error', m: 'Le sujet est requis' }
-                  : v.trim().length < 3 ? { s: 'error', m: 'Minimum 3 caracteres' }
+                  : v.trim().length < 3 ? { s: 'error', m: 'Minimum 3 caractères' }
                   : { s: 'ok', m: '' },
 
   'c-message': v => !v.length ? { s: 'error', m: 'Le message est requis' }
-                   : v.trim().length < 10 ? { s: 'error', m: 'Minimum 10 caracteres (' + v.trim().length + '/10)' }
+                   : v.trim().length < 10 ? { s: 'error', m: 'Minimum 10 caractères (' + v.trim().length + '/10)' }
                    : { s: 'ok', m: '' },
 
   'profile-nom':   v => !v.length ? { s: 'error', m: 'Le nom est requis' }
-                       : v.trim().length < 2 ? { s: 'error', m: 'Minimum 2 caracteres' }
+                       : v.trim().length < 2 ? { s: 'error', m: 'Minimum 2 caractères' }
                        : { s: 'ok', m: '' },
 
   'profile-email': v => !v.length ? { s: 'error', m: "L'email est requis" }
@@ -382,8 +531,9 @@ async function submitRegister(ev) {
         if (h) h.innerHTML = '';
       });
       document.getElementById('pwd-strength').style.display = 'none';
+      setTimeout(() => showTab('accueil', document.getElementById('nav-btn-accueil')), 1000);
     } else {
-      el.innerHTML = '<div class="alert-error">' + (d.message || 'Erreur lors de la creation du compte') + '</div>';
+      el.innerHTML = '<div class="alert-error">' + (d.message || 'Erreur lors de la création du compte') + '</div>';
     }
   } catch (err) {
     el.innerHTML = '<div class="alert-error">Erreur reseau : ' + err.message + '</div>';
@@ -468,18 +618,36 @@ function renderPagination(containerId, current, total, onPageChange) {
 }
 
 // ── Voyages ────────────────────────────────────────────────────────────────────
-let _voyagesPage = 1;
+let _voyagesPage   = 1;
+let _filterTimeout = null;
+
+function debouncedLoadVoyages() {
+  clearTimeout(_filterTimeout);
+  _filterTimeout = setTimeout(() => loadVoyages(1), 260);
+}
+
+function resetFilters() {
+  document.getElementById('filter-categorie').value = '';
+  document.getElementById('filter-prix-min').value  = '';
+  document.getElementById('filter-prix').value       = '';
+  document.getElementById('filter-dest').value       = '';
+  document.getElementById('filter-vedette').checked  = false;
+  loadVoyages(1);
+}
 
 async function loadVoyages(page = 1) {
   _voyagesPage = page;
-  const params = new URLSearchParams();
-  const cat  = document.getElementById('filter-categorie')?.value;
-  const prix = document.getElementById('filter-prix')?.value;
-  const dest = document.getElementById('filter-dest')?.value;
-  const ved  = document.getElementById('filter-vedette')?.checked;
-  if (cat)  params.set('categorie',   cat);
-  if (prix) params.set('prixMax',     prix);
-  if (dest) params.set('destination', dest);
+  const params   = new URLSearchParams();
+  const cat      = document.getElementById('filter-categorie')?.value;
+  const prixMin  = document.getElementById('filter-prix-min')?.value;
+  const prix     = document.getElementById('filter-prix')?.value;
+  const dest     = document.getElementById('filter-dest')?.value;
+  const ved      = document.getElementById('filter-vedette')?.checked;
+  const rate     = exchangeRates[currentCurrency] || 1;
+  if (cat)     params.set('categorie', cat);
+  if (prixMin) params.set('prixMin',   Math.round(Number(prixMin) / rate));
+  if (prix)    params.set('prixMax',   Math.round(Number(prix)    / rate));
+  if (dest)    params.set('q',         dest);
   if (ved)  params.set('vedette',     'true');
   params.set('page', page);
   params.set('limit', 10);
@@ -495,12 +663,12 @@ async function loadVoyages(page = 1) {
     }
     const vs  = res.data;
     if (!vs || !vs.length) {
-      c.innerHTML = '<div class="empty-state">Aucun voyage trouve.</div>';
+      c.innerHTML = '<div class="empty-state">Aucun voyage trouvé.</div>';
       renderPagination('voyages-pagination', res.page, res.totalPages, loadVoyages);
       return;
     }
     c.innerHTML =
-      '<p class="results-count">' + res.total + ' voyage(s) trouve(s)</p>' +
+      '<p class="results-count">' + res.total + ' voyage(s) trouvé(s)</p>' +
       '<div class="voyages-grid">' +
       vs.map(renderVoyageCard).join('') +
       '</div>';
@@ -514,7 +682,7 @@ function renderVoyageCard(v) {
   const cc = CAT[v.categorie] || CAT.ville;
   return `
     <div class="voyage-card" data-id="${v._id}">
-      <div class="voyage-img-wrap">
+      <div class="voyage-img-wrap voyage-img-clickable" onclick='viewVoyage(${JSON.stringify(JSON.stringify(v))})'>
         <img src="${v.image || ''}" alt="${v.titre}" onerror="this.style.display='none'" />
         <div class="v-img-badges">
           ${v.vedette ? '<span class="badge-vedette">Vedette</span>' : ''}
@@ -533,8 +701,8 @@ function renderVoyageCard(v) {
         <div class="vc-footer">
           <span class="vc-price">${formatPrice(v.prix)}</span>
           <div class="vc-actions">
-            <button class="btn-ghost btn-sm" onclick='viewVoyage(${JSON.stringify(JSON.stringify(v))})'>Details</button>
-            <button class="btn-violet btn-sm" onclick="reserveVoyage('${v._id}')">Reserver</button>
+            <button class="btn-ghost btn-sm" onclick='viewVoyage(${JSON.stringify(JSON.stringify(v))})'>Détails</button>
+            <button class="btn-violet btn-sm" onclick="reserveVoyage('${v._id}')">Réserver</button>
           </div>
         </div>
       </div>
@@ -549,7 +717,7 @@ function viewVoyage(vJson) {
   const reserveBtn = !isAdmin ? `
     <button class="btn-violet btn-reserve-full"
             onclick="reserveVoyage('${v._id}');showTab('reserver',null)">
-      Reserver ce voyage
+      Réserver ce voyage
     </button>` : '';
 
   const deleteBtn = isAdmin ? `
@@ -591,7 +759,7 @@ function viewVoyage(vJson) {
         </div>
         <div class="detail-stat">
           <div class="stat-val-light">${new Date(v.dateDepart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</div>
-          <div class="stat-lbl">Depart</div>
+          <div class="stat-lbl">Départ</div>
         </div>
       </div>
       <div class="card-panel" style="margin-bottom:16px">
@@ -618,7 +786,7 @@ function reserveVoyage(id) {
 async function deleteVoyage(id, titre) {
   const ok = await showConfirm({
     title:   'Supprimer le voyage',
-    msg:     'Etes-vous sur de vouloir supprimer "' + titre + '" ? Cette action est irreversible.',
+    msg:     'Êtes-vous sûr de vouloir supprimer "' + titre + '" ? Cette action est irréversible.',
     type:    'danger',
     okLabel: 'Supprimer',
   });
@@ -632,7 +800,7 @@ async function deleteVoyage(id, titre) {
       alert(d.message || 'Erreur lors de la suppression.');
     }
   } catch (err) {
-    alert('Erreur reseau : ' + err.message);
+    alert('Erreur réseau : ' + err.message);
   }
 }
 
@@ -685,7 +853,7 @@ async function createVoyage(ev) {
         }, 300);
       }, 1000);
     } else {
-      el.innerHTML = '<div class="alert-error" style="margin-top:14px">' + (d.message || 'Erreur lors de la creation.') + '</div>';
+      el.innerHTML = '<div class="alert-error" style="margin-top:14px">' + (d.message || 'Erreur lors de la création.') + '</div>';
     }
   } catch (err) {
     el.innerHTML = '<div class="alert-error" style="margin-top:14px">' + err.message + '</div>';
@@ -720,7 +888,9 @@ async function loadVoyagesForSelect(sid) {
   const r   = await fetch(API + '/voyages');
   const vs  = await r.json();
   const sel = document.getElementById('res-voyage-id');
-  sel.innerHTML = vs.map(v => `<option value="${v._id}" data-prix="${v.prix}">${v.titre} — ${formatPrice(v.prix)}</option>`).join('');
+  sel.innerHTML = vs.map(v =>
+    `<option value="${esc(v._id)}" data-prix="${v.prix}" data-image="${esc(v.image || '')}">${esc(v.titre)} — ${formatPrice(v.prix)}</option>`
+  ).join('');
   if (sid) sel.value = sid;
   updatePrixPreview();
 }
@@ -728,9 +898,19 @@ async function loadVoyagesForSelect(sid) {
 function updatePrixPreview() {
   const sel = document.getElementById('res-voyage-id');
   const nb  = document.getElementById('res-nb')?.value;
-  const opt = sel?.options[sel.selectedIndex];
+  const opt = sel?.options[sel?.selectedIndex];
   if (opt?.dataset.prix && nb) {
     document.getElementById('res-prix-preview').textContent = 'Total : ' + formatPrice(opt.dataset.prix * nb);
+  }
+  const bg  = document.getElementById('res-voyage-bg');
+  if (bg) {
+    const img = opt?.dataset.image;
+    if (img) {
+      bg.style.backgroundImage = `url(${img})`;
+      bg.classList.add('has-image');
+    } else {
+      bg.classList.remove('has-image');
+    }
   }
 }
 
@@ -738,7 +918,7 @@ async function makeReservation(ev) {
   ev.preventDefault();
   const el = document.getElementById('reserver-response');
   if (!token) {
-    el.innerHTML = '<div class="alert-error" style="margin-top:12px">Connectez-vous pour effectuer une reservation.</div>';
+    el.innerHTML = '<div class="alert-error" style="margin-top:12px">Connectez-vous pour effectuer une réservation.</div>';
     return;
   }
   if (!validateForm(['res-nb'])) return;
@@ -760,11 +940,11 @@ async function makeReservation(ev) {
         <div class="res-success-box">
           <div class="res-success-header">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span class="res-success-title">Reservation confirmee</span>
+            <span class="res-success-title">Réservation confirmée</span>
           </div>
           <p class="res-success-text">
-            Votre reservation pour <strong style="color:#e2e8f0">${titre.split(' —')[0]}</strong>
-            (${nb} personne${nb > 1 ? 's' : ''}) a bien ete enregistree avec le statut
+            Votre réservation pour <strong style="color:#e2e8f0">${titre.split(' —')[0]}</strong>
+            (${nb} personne${nb > 1 ? 's' : ''}) a bien été enregistrée avec le statut
             <span style="color:#fbbf24;font-weight:600">en attente</span>.
           </p>
         </div>`;
@@ -781,7 +961,7 @@ async function loadReservations(page = 1) {
   _resPage = page;
   const c = document.getElementById('reservations-container');
   if (!token) {
-    c.innerHTML = '<div class="empty-state">Connectez-vous pour voir les reservations.</div>';
+    c.innerHTML = '<div class="empty-state">Connectez-vous pour voir les réservations.</div>';
     return;
   }
   try {
@@ -799,7 +979,7 @@ async function loadReservations(page = 1) {
     }
     const d = res.data;
     if (!d || !d.length) {
-      c.innerHTML = '<div class="empty-state">Aucune reservation.</div>';
+      c.innerHTML = '<div class="empty-state">Aucune réservation.</div>';
       renderPagination('reservations-pagination', res.page, res.totalPages, loadReservations);
       return;
     }
@@ -830,7 +1010,7 @@ function renderReservationRow(res, isAdmin) {
       ${clientCell}
       <td>${res.nombrePersonnes}</td>
       <td style="color:#38bdf8;font-weight:600">${formatPrice(res.prixTotal)}</td>
-      <td><span class="status-chip status-${res.statut}">${res.statut.replace('_', ' ')}</span></td>
+      <td><span class="status-chip status-${res.statut}">${STATUT_LABELS[res.statut] || res.statut}</span></td>
       <td class="td-date">${new Date(res.createdAt).toLocaleDateString('fr-FR')}</td>
       <td>${cancelBtn}</td>
     </tr>`;
@@ -838,8 +1018,8 @@ function renderReservationRow(res, isAdmin) {
 
 async function cancelReservation(id) {
   const ok = await showConfirm({
-    title:   'Annuler la reservation',
-    msg:     'Etes-vous sur de vouloir annuler cette reservation ? Les places seront restituees.',
+    title:   'Annuler la réservation',
+    msg:     'Êtes-vous sûr de vouloir annuler cette réservation ? Les places seront restituées.',
     type:    'warning',
     okLabel: 'Oui, annuler',
   });
@@ -853,7 +1033,7 @@ async function cancelReservation(id) {
       alert(d.message || "Erreur lors de l'annulation.");
     }
   } catch (err) {
-    alert('Erreur reseau : ' + err.message);
+    alert('Erreur réseau : ' + err.message);
   }
 }
 
@@ -999,7 +1179,7 @@ async function markLu(id) {
 async function deleteMsg(id) {
   const ok = await showConfirm({
     title:   'Supprimer le message',
-    msg:     'Etes-vous sur de vouloir supprimer ce message ? Cette action est irreversible.',
+    msg:     'Êtes-vous sûr de vouloir supprimer ce message ? Cette action est irréversible.',
     type:    'danger',
     okLabel: 'Supprimer',
   });
@@ -1076,22 +1256,19 @@ function loadProfileTab() {
     o.style.outlineOffset = '2px';
   });
 
-  // Section photo — visible uniquement pour l'admin
   const photoSection = document.getElementById('profile-photo-section');
-  photoSection.style.display = isAdmin ? 'block' : 'none';
-  if (isAdmin) {
-    const img         = document.getElementById('profile-photo-img');
-    const placeholder = document.getElementById('profile-photo-placeholder');
-    document.getElementById('photo-response').innerHTML = '';
-    if (currentUser.photoUrl) {
-      img.src           = currentUser.photoUrl;
-      img.style.display = 'block';
-      placeholder.style.display = 'none';
-    } else {
-      img.src           = '';
-      img.style.display = 'none';
-      placeholder.style.display = 'flex';
-    }
+  photoSection.style.display = 'block';
+  const img         = document.getElementById('profile-photo-img');
+  const placeholder = document.getElementById('profile-photo-placeholder');
+  document.getElementById('photo-response').innerHTML = '';
+  if (currentUser.photoUrl) {
+    img.src           = currentUser.photoUrl;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    img.src           = '';
+    img.style.display = 'none';
+    placeholder.style.display = 'flex';
   }
 }
 
@@ -1134,7 +1311,7 @@ async function uploadProfilePhoto() {
       el.innerHTML = `
         <div class="alert-success-box" style="margin-top:8px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          <span class="alert-success-text">Photo mise a jour</span>
+          <span class="alert-success-text">Photo mise à jour</span>
         </div>`;
     } else {
       el.innerHTML = '<div class="alert-error" style="margin-top:8px">' + (d.message || 'Erreur upload.') + '</div>';
@@ -1177,7 +1354,7 @@ async function saveProfile(ev) {
           <span class="alert-success-text">Profil mis a jour avec succes</span>
         </div>`;
     } else {
-      el.innerHTML = '<div class="alert-error" style="margin-top:12px">' + (d.message || 'Erreur lors de la mise a jour.') + '</div>';
+      el.innerHTML = '<div class="alert-error" style="margin-top:12px">' + (d.message || 'Erreur lors de la mise à jour.') + '</div>';
     }
   } catch (err) {
     el.innerHTML = '<div class="alert-error" style="margin-top:12px">Erreur reseau : ' + err.message + '</div>';
@@ -1218,7 +1395,7 @@ async function loadAdminReservations(page = 1) {
 
 function renderAdminResRow(r) {
   const statusOpts = ['en_attente', 'confirmee', 'annulee'].map(s =>
-    `<option value="${s}" ${r.statut === s ? 'selected' : ''}>${s.replace(/_/g, ' ')}</option>`
+    `<option value="${s}" ${r.statut === s ? 'selected' : ''}>${STATUT_LABELS[s]}</option>`
   ).join('');
   const clientData = JSON.stringify({ nom: r.client?.nom || '', email: r.client?.email || '', tel: r.client?.telephone || '', voyage: r.voyage?.titre || '' });
   return `
@@ -1446,6 +1623,78 @@ document.addEventListener('change', e => {
     input.value = '';
   }
 });
+
+// ── Souvenirs gallery (clients) ────────────────────────────────────────────────
+let _sdPhotos = [];
+let _sdIdx    = 0;
+let _sdTimer  = null;
+
+async function loadSouvenirsDash() {
+  const wrap  = document.getElementById('sdash-gallery-wrap');
+  const empty = document.getElementById('sdash-empty');
+  if (!wrap || !empty) return;
+  try {
+    const r = await fetch(API + '/albums');
+    if (!r.ok) { wrap.style.display = 'none'; empty.style.display = 'block'; return; }
+    const albums = await r.json();
+    if (!Array.isArray(albums)) { wrap.style.display = 'none'; empty.style.display = 'block'; return; }
+    _sdPhotos = albums.flatMap(a => Array.isArray(a.photos) ? a.photos : []);
+    if (!_sdPhotos.length) { wrap.style.display = 'none'; empty.style.display = 'block'; return; }
+    wrap.style.display = '';
+    empty.style.display = 'none';
+    _sdIdx = 0;
+    buildSouvenirsDashSlides();
+    buildSouvenirsDashDots();
+    setSouvenirsDashPos(0, false);
+    clearInterval(_sdTimer);
+    _sdTimer = setInterval(() => souvenirsDashNext(), 5000);
+  } catch { wrap.style.display = 'none'; empty.style.display = 'block'; }
+}
+
+function buildSouvenirsDashSlides() {
+  const track = document.getElementById('sdash-track');
+  if (!track) return;
+  track.innerHTML = '';
+  _sdPhotos.forEach(p => {
+    const slide = document.createElement('div');
+    slide.className = 'sdash-slide';
+    const img = document.createElement('img');
+    img.src = p.url || '';
+    img.alt = p.legende || '';
+    img.onerror = () => { img.style.background = '#0a1e33'; img.removeAttribute('src'); };
+    slide.appendChild(img);
+    track.appendChild(slide);
+  });
+}
+
+function buildSouvenirsDashDots() {
+  const el = document.getElementById('sdash-dots');
+  if (!el) return;
+  el.innerHTML = '';
+  _sdPhotos.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'sdash-dot' + (i === 0 ? ' active' : '');
+    d.setAttribute('aria-label', 'Photo ' + (i + 1));
+    d.onclick = () => setSouvenirsDashPos(i, true);
+    el.appendChild(d);
+  });
+}
+
+function setSouvenirsDashPos(idx, resetTimer = true) {
+  _sdIdx = ((idx % _sdPhotos.length) + _sdPhotos.length) % _sdPhotos.length;
+  const track = document.getElementById('sdash-track');
+  if (track) track.style.transform = `translateX(-${_sdIdx * 100}%)`;
+  const caption = document.getElementById('sdash-caption');
+  if (caption) caption.textContent = _sdPhotos[_sdIdx]?.legende || '';
+  document.querySelectorAll('.sdash-dot').forEach((d, i) =>
+    d.classList.toggle('active', i === _sdIdx));
+  const counter = document.getElementById('sdash-counter');
+  if (counter) counter.textContent = (_sdIdx + 1) + ' / ' + _sdPhotos.length;
+  if (resetTimer) { clearInterval(_sdTimer); _sdTimer = setInterval(() => souvenirsDashNext(), 5000); }
+}
+
+function souvenirsDashNext() { if (_sdPhotos.length) setSouvenirsDashPos(_sdIdx + 1); }
+function souvenirsDashPrev() { if (_sdPhotos.length) setSouvenirsDashPos(_sdIdx - 1); }
 
 // ── Mobile sidebar ─────────────────────────────────────────────────────────────
 function toggleSidebar() {

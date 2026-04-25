@@ -50,6 +50,7 @@ app.use('/api/contact', contactLimiter, require('./routes/contact'));
 app.use('/api/voyages', require('./routes/voyages'));
 app.use('/api/reservations', require('./routes/reservations'));
 app.use('/api/albums', require('./routes/albums'));
+app.use('/api/settings', require('./routes/settings'));
 
 // Proxy taux de change (évite le CORS de frankfurter.app)
 app.get('/api/rates', async (req, res) => {
@@ -60,6 +61,27 @@ app.get('/api/rates', async (req, res) => {
   } catch {
     res.status(502).json({ message: 'Taux de change indisponibles' });
   }
+});
+
+// ── Gestionnaires d'erreur ─────────────────────────────────────────────────────
+
+// 404 — route inconnue
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ message: 'Ressource introuvable.' });
+  }
+  res.status(404).sendFile('404.html', { root: 'public' });
+});
+
+// 500 — erreur interne
+app.use((err, req, res, _next) => {
+  console.error('Erreur serveur :', err);
+  if (req.path.startsWith('/api/')) {
+    const status = err.status || err.statusCode || 500;
+    const msg    = status < 500 ? err.message : 'Erreur interne du serveur.';
+    return res.status(status).json({ message: msg });
+  }
+  res.status(500).sendFile('500.html', { root: 'public' });
 });
 
 // Connexion MongoDB
