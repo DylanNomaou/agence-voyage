@@ -1,4 +1,4 @@
-const API = 'http://localhost:5000/api';
+const API = window.location.origin + '/api';
 
 function esc(s) {
   if (s == null) return '';
@@ -123,7 +123,7 @@ async function checkApiStatus() {
   const dot  = document.getElementById('status-dot');
   const text = document.getElementById('api-status-text');
   try {
-    await fetch('http://localhost:5000/');
+    await fetch(window.location.origin + '/');
     dot.classList.remove('offline');
     text.textContent = 'Serveur actif';
   } catch {
