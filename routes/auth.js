@@ -70,10 +70,11 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email ou mot de passe incorrect' });
     }
 
+    const { rememberMe } = req.body;
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: rememberMe ? '30d' : '7d' }
     );
 
     res.json({ token, user: publicUser(user) });

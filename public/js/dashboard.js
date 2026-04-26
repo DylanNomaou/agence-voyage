@@ -10,8 +10,10 @@ function esc(s) {
     .replace(/'/g, '&#39;');
 }
 
-let token       = localStorage.getItem('token');
-let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+let token       = localStorage.getItem('token') || sessionStorage.getItem('token');
+let currentUser = JSON.parse(
+  localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null'
+);
 
 // ── Devises ────────────────────────────────────────────────────────────────────
 let currentCurrency = 'CAD';
@@ -338,6 +340,8 @@ function logout() {
   currentUser = null;
   localStorage.removeItem('token');
   localStorage.removeItem('currentUser');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('currentUser');
   updateAuthUI();
 }
 
@@ -557,14 +561,16 @@ async function submitLogin(ev) {
       body:    JSON.stringify({
         email:      document.getElementById('login-email').value.trim(),
         motDePasse: document.getElementById('login-pwd').value,
+        rememberMe: document.getElementById('login-remember').checked,
       }),
     });
     const d = await r.json();
     if (r.ok) {
       token       = d.token;
       currentUser = d.user;
-      localStorage.setItem('token',       token);
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      const store = document.getElementById('login-remember').checked ? localStorage : sessionStorage;
+      store.setItem('token',       token);
+      store.setItem('currentUser', JSON.stringify(currentUser));
       updateAuthUI();
       setTimeout(() => {
         if (d.user.role === 'admin') {
